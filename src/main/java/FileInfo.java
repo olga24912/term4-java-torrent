@@ -88,6 +88,7 @@ public class FileInfo implements Serializable {
     public void savePart(byte[] partEntry, int partNum) throws IOException {
         file.seek(getPosOfPart(partNum));
         file.write(partEntry);
+        parts[partNum] = true;
     }
 
     public long getPosOfPart(int partNum) {

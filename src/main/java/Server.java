@@ -157,6 +157,7 @@ public class Server {
 
         for (ClientAddress client : file.clients) {
             dos.write(client.ip);
+            dos.writeShort(client.port);
         }
     }
 
@@ -180,6 +181,8 @@ public class Server {
         ClientAddress newClient = new ClientAddress();
         newClient.ip = ip;
         newClient.port = seed_port;
+
+        System.err.println("Client Port update " + seed_port);
 
         deleteClient(newClient);
 

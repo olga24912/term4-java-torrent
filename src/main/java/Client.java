@@ -13,9 +13,6 @@ public class Client {
 
     private int port;
 
-    private static final int STAT_QUERY = 1;
-    private static final int GET_QUERY = 2;
-
     private Map<Integer, FileInfo> files;
     private String host;
 
@@ -174,7 +171,7 @@ public class Client {
 
         ArrayList<ClientAddress> clientsWithFile = sendSourcesQuery(id);
 
-        System.err.println(clientsWithFile.size());
+        System.err.println("clients size: "  + clientsWithFile.size());
         FileInfo file =  files.get(id);
 
         Collections.shuffle(clientsWithFile);
@@ -191,6 +188,7 @@ public class Client {
 
             for (Integer partNum: parts) {
                 if (file.needPart(partNum)) {
+                    System.err.println("need part " + partNum);
                     byte[] partEntry = sendGetQuery(dis, dos, file, partNum);
                     file.savePart(partEntry, partNum);
                     System.err.println("Save part " + partNum + " " + id);
@@ -201,6 +199,8 @@ public class Client {
     }
 
     private byte[] sendGetQuery(DataInputStream dis, DataOutputStream dos, FileInfo file, int partNum) throws IOException {
+        System.err.println("Get Query " + file.getId() + " " + partNum);
+
         dos.writeByte(2);
         dos.writeInt(file.getId());
         dos.writeInt(partNum);
@@ -216,12 +216,14 @@ public class Client {
     }
 
     private ArrayList<Integer> sendStatQuery(DataInputStream dis, DataOutputStream dos, int id) throws IOException {
-        dos.writeByte(1);
+        dos.writeByte(Constants.STAT_QUERY);
         dos.writeInt(id);
 
         ArrayList<Integer> parts = new ArrayList<>();
 
+        System.err.println("StatQuery");
         int count = dis.readInt();
+        System.err.println("parts count: " + count);
         for (int i = 0; i < count; ++i) {
             int partNum = dis.readInt();
             parts.add(partNum);
@@ -246,8 +248,9 @@ public class Client {
         for (int i = 0; i < cnt; ++i) {
             ClientAddress clientAddress = new ClientAddress();
             dis.read(clientAddress.ip);
+            System.err.println("ip: " + Arrays.toString(clientAddress.ip));
             clientAddress.port = dis.readShort();
-
+            System.err.println("port: " + clientAddress.port);
             clients.add(clientAddress);
         }
 
@@ -262,13 +265,13 @@ public class Client {
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
             while (!socket.isClosed()) {
-                int operation = dis.readInt();
-                if (operation == STAT_QUERY) {
+                int operation = dis.readByte();
+                if (operation == Constants.STAT_QUERY) {
                     handlingStatQuery(dis, dos);
-                } else if (operation == GET_QUERY) {
+                } else if (operation == Constants.GET_QUERY) {
                     handlingGetQuery(dis, dos);
                 } else {
-                    System.err.printf("Wrong query");
+                    System.err.println("Wrong query " + String.format("%x", operation));
                 }
             }
         } catch (IOException ignored) {
@@ -283,14 +286,14 @@ public class Client {
     private void handlingStatQuery(DataInputStream dis, DataOutputStream dos) throws IOException {
         int id = dis.readInt();
         if (!files.containsKey(id)) {
-            dos.write(0);
+            dos.writeInt(0);
         } else {
             ArrayList<Integer> parts = files.get(id).getExistingParts();
 
-            dos.write(parts.size());
+            dos.writeInt(parts.size());
 
             for (Integer part : parts) {
-                dos.write(part);
+                dos.writeInt(part);
             }
         }
     }

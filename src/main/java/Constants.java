@@ -5,4 +5,7 @@ public class Constants {
     public static final int UPLOAD_QUERY = 2;
     public static final int SOURCES_QUERY = 3;
     public static final int UPDATE_QUERY = 4;
+
+    public static final int STAT_QUERY = 1;
+    public static final int GET_QUERY = 2;
 }
