@@ -153,7 +153,7 @@ public class Server {
             deleteClient(client);
         }
 
-        dos.write(file.clients.size());
+        dos.writeInt(file.clients.size());
 
         for (ClientAddress client : file.clients) {
             dos.write(client.ip);

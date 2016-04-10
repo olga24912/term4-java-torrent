@@ -170,8 +170,11 @@ public class Client {
     }
 
     private void download(int id, String name, long size) throws IOException {
+        System.err.println(id + " " + name + " " +  size);
+
         ArrayList<ClientAddress> clientsWithFile = sendSourcesQuery(id);
 
+        System.err.println(clientsWithFile.size());
         FileInfo file =  files.get(id);
 
         Collections.shuffle(clientsWithFile);
@@ -234,8 +237,11 @@ public class Client {
         dos.writeByte(Constants.SOURCES_QUERY);
         dos.writeInt(id);
 
+        System.err.println("Send sources query");
+
         ArrayList<ClientAddress> clients = new ArrayList<>();
         int cnt = dis.readInt();
+        System.err.println("cnt: " + cnt);
 
         for (int i = 0; i < cnt; ++i) {
             ClientAddress clientAddress = new ClientAddress();
