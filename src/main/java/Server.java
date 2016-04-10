@@ -6,10 +6,11 @@ import java.security.SecureRandom;
 import java.util.*;
 
 public class Server {
+    private static final long WAITING_TIME = 60000;
     private ServerSocket serverSocket;
 
     private Map<Integer, FileEntry> filesByID = new HashMap<>();
-    private Map<ClientAddress, ArrayList<Integer> > activeClient = new HashMap<>();
+    private Map<ClientAddress, ClientInfo> activeClient = new HashMap<>();
 
     private Random rnd = new SecureRandom();
 
@@ -139,10 +140,34 @@ public class Server {
 
         FileEntry file = filesByID.get(id);
 
+        ArrayList<ClientAddress> del = new ArrayList<>();
+        long currentTime = System.currentTimeMillis();
+
+        for (ClientAddress client : file.clients) {
+            if (activeClient.get(client).lastUpdateTime < currentTime - WAITING_TIME) {
+                del.add(client);
+            }
+        }
+
+        for (ClientAddress client : del) {
+            deleteClient(client);
+        }
+
         dos.write(file.clients.size());
 
         for (ClientAddress client : file.clients) {
             dos.write(client.ip);
+        }
+    }
+
+    private void deleteClient(ClientAddress client) {
+        if (activeClient.containsKey(client)) {
+            ArrayList<Integer> oldClientsFiles = activeClient.get(client).files;
+            activeClient.remove(client);
+
+            for (Integer oldFiles : oldClientsFiles) {
+                filesByID.get(oldFiles).clients.remove(client);
+            }
         }
     }
 
@@ -156,14 +181,7 @@ public class Server {
         newClient.ip = ip;
         newClient.port = seed_port;
 
-        ArrayList<Integer> oldClientsFiles = activeClient.get(newClient);
-        if (oldClientsFiles != null) {
-            activeClient.remove(newClient);
-
-            for (Integer oldFiles : oldClientsFiles) {
-                filesByID.get(oldFiles).clients.remove(newClient);
-            }
-        }
+        deleteClient(newClient);
 
         ArrayList<Integer> clientsFilesId = new ArrayList<>();
         for (int i = 0; i < count; ++i) {
@@ -178,7 +196,7 @@ public class Server {
                 return;
             }
         }
-        activeClient.put(newClient, clientsFilesId);
+        activeClient.put(newClient, new ClientInfo(clientsFilesId, System.currentTimeMillis()));
 
         System.err.println("update");
         dos.writeBoolean(true);
@@ -199,5 +217,15 @@ public class Server {
         long size;
 
         Set<ClientAddress> clients = new HashSet<>();
+    }
+
+    private class ClientInfo {
+        ArrayList<Integer> files;
+        long lastUpdateTime;
+
+        public ClientInfo(ArrayList<Integer> files, long lastUpdateTime) {
+            this.files = files;
+            this.lastUpdateTime = lastUpdateTime;
+        }
     }
 }
