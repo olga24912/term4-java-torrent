@@ -9,10 +9,7 @@ public class Client {
 
     private File stateFile;
 
-    private Socket socket;
     private ServerSocket serverSocket;
-    private DataInputStream dis;
-    private DataOutputStream dos;
 
     private int port;
 
@@ -20,11 +17,10 @@ public class Client {
     private static final int GET_QUERY = 2;
 
     private Map<Integer, FileInfo> files;
+    private String host;
 
     public Client(String host, String path_info) throws IOException {
-        socket = new Socket(host, SERVER_PORT);
-        dis = new DataInputStream(socket.getInputStream());
-        dos = new DataOutputStream(socket.getOutputStream());
+        this.host = host;
 
         stateFile = new File(path_info);
 
@@ -63,6 +59,7 @@ public class Client {
 
     private void catheSocket() throws IOException {
         while (true) {
+            System.err.println("white query " + Thread.currentThread().getName());
             Socket socket = this.serverSocket.accept();
             if (socket != null) {
                 handlingQuery(socket);
@@ -74,6 +71,10 @@ public class Client {
 
     private void sendUpdateQuery() throws IOException, InterruptedException {
         while (true) {
+            Socket socket = new Socket(host, SERVER_PORT);
+            DataInputStream dis = new DataInputStream(socket.getInputStream());
+            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
             dos.writeByte(Constants.UPDATE_QUERY);
             dos.writeShort(port);
             dos.writeInt(files.size());
@@ -81,11 +82,17 @@ public class Client {
             for (Integer id: files.keySet()) {
                 dos.writeInt(id);
             }
+
+            socket.close();
             Thread.sleep(10000);
         }
     }
 
     private ArrayList<FileInfo> sendListQuery() throws IOException {
+        Socket socket = new Socket(host, SERVER_PORT);
+        DataInputStream dis = new DataInputStream(socket.getInputStream());
+        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
         dos.writeByte(Constants.LIST_QUERY);
         int count = dis.readInt();
 
@@ -95,11 +102,11 @@ public class Client {
             filesOnServer.add(FileInfo.fromServerInfo(dis.readInt(), dis.readUTF(), dis.readLong()));
         }
 
+        socket.close();
         return filesOnServer;
     }
 
     public void close() throws IOException {
-        socket.close();
     }
 
 
@@ -108,8 +115,14 @@ public class Client {
     }
 
     public int newFile(String name) throws IOException {
+        Socket socket = new Socket(host, SERVER_PORT);
+        DataInputStream dis = new DataInputStream(socket.getInputStream());
+        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
         FileInfo fileInfo = FileInfo.fromLocalFile(dis, dos, name);
         files.put(fileInfo.getId(), fileInfo);
+
+        socket.close();
         return fileInfo.getId();
     }
 
@@ -122,16 +135,21 @@ public class Client {
         this.port = port;
         startSendUpdateQuery();
         startSeedingThread();
+        System.err.println("start run");
         ArrayList<FileInfo> fis = list();
+        System.err.println("start after list");
 
         for (FileInfo fi: fis) {
+            System.err.println(fi.getId());
             if (files.containsKey(fi.getId()) && files.get(fi.getId()) == null) {
                 files.put(fi.getId(), FileInfo.fromServerInfo(fi.getId(), fi.getName(), fi.getSize()));
             }
         }
         while (true) {
+            System.err.println("start download file");
             for (Map.Entry<Integer, FileInfo> entry : files.entrySet()) {
                 if (entry.getValue() != null) {
+                    System.err.println(entry.getValue().getId() +  Thread.currentThread().getName());
                     download(entry.getValue().getId(), entry.getValue().getName(), entry.getValue().getSize());
                 }
             }
@@ -151,7 +169,6 @@ public class Client {
         thread.start();
     }
 
-    //Client as client
     private void download(int id, String name, long size) throws IOException {
         ArrayList<ClientAddress> clientsWithFile = sendSourcesQuery(id);
 
@@ -163,14 +180,20 @@ public class Client {
             DataInputStream dis = new DataInputStream(socket.getInputStream());
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
+            System.err.println(InetAddress.getByAddress(currentClient.ip));
+
             ArrayList<Integer> parts = sendStatQuery(dis, dos, id);
+
+            System.err.println("Start save parts " + id);
 
             for (Integer partNum: parts) {
                 if (file.needPart(partNum)) {
                     byte[] partEntry = sendGetQuery(dis, dos, file, partNum);
                     file.savePart(partEntry, partNum);
+                    System.err.println("Save part " + partNum + " " + id);
                 }
             }
+            socket.close();
         }
     }
 
@@ -204,7 +227,11 @@ public class Client {
     }
 
     private ArrayList<ClientAddress> sendSourcesQuery(int id) throws IOException {
-        dos.writeByte(3);
+        Socket socket = new Socket(host, SERVER_PORT);
+        DataInputStream dis = new DataInputStream(socket.getInputStream());
+        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+        dos.writeByte(Constants.SOURCES_QUERY);
         dos.writeInt(id);
 
         ArrayList<ClientAddress> clients = new ArrayList<>();
@@ -217,6 +244,8 @@ public class Client {
 
             clients.add(clientAddress);
         }
+
+        socket.close();
         return clients;
     }
 
