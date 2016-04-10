@@ -1,26 +1,51 @@
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.security.SecureRandom;
 import java.util.*;
 
 public class Server {
     private ServerSocket serverSocket;
 
-    private static final int port = 8081;
-
-    private static final int LIST_QUERY = 1;
-    private static final int UPLOAD_QUERY = 2;
-    private static final int SOURCES_QUERY = 3;
-    private static final int UPDATE_QUERY = 4;
-
-    private ArrayList<FileEntry> filesByID = new ArrayList<>();
+    private Map<Integer, FileEntry> filesByID = new HashMap<>();
     private Map<ClientAddress, ArrayList<Integer> > activeClient = new HashMap<>();
 
+    private Random rnd = new SecureRandom();
+
+    private File stateFile;
+    private PrintWriter stateWriter;
+
+    public Server(File file) throws FileNotFoundException, UnsupportedEncodingException {
+        stateFile = file;
+        loadState();
+        stateWriter = new PrintWriter(new FileOutputStream(file, true));
+    }
+
+    private void loadState() {
+        Scanner in = null;
+        try {
+            in = new Scanner(stateFile);
+            while (in.hasNext()) {
+                FileEntry entry = new FileEntry();
+                entry.clients = new HashSet<>();
+                entry.id = in.nextInt();
+                entry.name = in.next();
+                entry.size = in.nextLong();
+
+                filesByID.put(entry.id, entry);
+            }
+            in.close();
+        } catch (FileNotFoundException ignored) {
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        new Server(new File(args[0])).start();
+    }
+
     public Thread start() throws IOException {
-        serverSocket = new ServerSocket(port);
+        serverSocket = new ServerSocket(Constants.SERVER_PORT);
 
         Thread thread = new Thread(() -> {
             try {
@@ -67,17 +92,17 @@ public class Server {
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
             while (!socket.isClosed()) {
-                int operation = dis.readInt();
-                if (operation == LIST_QUERY) {
+                byte operation = dis.readByte();
+                if (operation == Constants.LIST_QUERY) {
                     handlingListQuery(dos);
-                } else if (operation == UPLOAD_QUERY) {
+                } else if (operation == Constants.UPLOAD_QUERY) {
                     handlingUploadQuery(dis, dos);
-                } else if (operation == SOURCES_QUERY) {
+                } else if (operation == Constants.SOURCES_QUERY) {
                     handlingSourcesQuery(dis, dos);
-                } else if (operation == UPDATE_QUERY) {
+                } else if (operation == Constants.UPDATE_QUERY) {
                     handlingUpdateQuery(dis, dos, socket);
                 } else {
-                    System.err.printf("Wrong query");
+                    System.err.printf("Wrong query\n");
                 }
             }
         } catch (IOException ignored) {
@@ -97,11 +122,16 @@ public class Server {
         newFile.name = name;
         newFile.size = size;
         newFile.clients = new HashSet<>();
-        newFile.id = filesByID.size();
+        newFile.id = rnd.nextInt();
+        while (filesByID.containsKey(newFile.id)) {
+            newFile.id = rnd.nextInt();
+        }
 
-        filesByID.add(newFile);
+        filesByID.put(newFile.id, newFile);
 
-        dos.write(newFile.id);
+        stateWriter.println(newFile.id + " " + newFile.name + " " + newFile.size);
+        stateWriter.flush();
+        dos.writeInt(newFile.id);
     }
 
     private void handlingSourcesQuery(DataInputStream dis,DataOutputStream dos) throws IOException {
@@ -127,10 +157,12 @@ public class Server {
         newClient.port = seed_port;
 
         ArrayList<Integer> oldClientsFiles = activeClient.get(newClient);
-        activeClient.remove(newClient);
+        if (oldClientsFiles != null) {
+            activeClient.remove(newClient);
 
-        for(Integer oldFiles: oldClientsFiles) {
-            filesByID.get(oldFiles).clients.remove(newClient);
+            for (Integer oldFiles : oldClientsFiles) {
+                filesByID.get(oldFiles).clients.remove(newClient);
+            }
         }
 
         ArrayList<Integer> clientsFilesId = new ArrayList<>();
@@ -138,19 +170,26 @@ public class Server {
             Integer fileId = dis.readInt();
             clientsFilesId.add(fileId);
 
-            filesByID.get(fileId).clients.add(newClient);
+            System.err.println(fileId);
+            if (filesByID.containsKey(fileId)) {
+                filesByID.get(fileId).clients.add(newClient);
+            } else {
+                socket.close();
+                return;
+            }
         }
         activeClient.put(newClient, clientsFilesId);
 
+        System.err.println("update");
         dos.writeBoolean(true);
     }
 
     private void handlingListQuery(DataOutputStream dos) throws IOException {
-        dos.write(filesByID.size());
-        for (int i = 0; i < filesByID.size(); ++i) {
-            dos.write(filesByID.get(i).id);
-            dos.writeUTF(filesByID.get(i).name);
-            dos.writeLong(filesByID.get(i).size);
+        dos.writeInt(filesByID.size());
+        for (FileEntry entry : filesByID.values()) {
+            dos.writeInt(entry.id);
+            dos.writeUTF(entry.name);
+            dos.writeLong(entry.size);
         }
     }
 
@@ -160,29 +199,5 @@ public class Server {
         long size;
 
         Set<ClientAddress> clients = new HashSet<>();
-    }
-
-    public static class ClientAddress {
-        short port;
-        byte[] ip;
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            ClientAddress that = (ClientAddress) o;
-
-            if (port != that.port) return false;
-            return Arrays.equals(ip, that.ip);
-
-        }
-
-        @Override
-        public int hashCode() {
-            int result = (int) port;
-            result = 31 * result + Arrays.hashCode(ip);
-            return result;
-        }
     }
 }
