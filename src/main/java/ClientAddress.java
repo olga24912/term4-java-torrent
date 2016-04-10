@@ -4,6 +4,10 @@ public class ClientAddress {
     short port;
     byte[] ip;
 
+    public ClientAddress() {
+        ip = new byte[4];
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

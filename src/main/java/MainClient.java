@@ -1,5 +1,5 @@
 import java.io.IOException;
-import java.util.AbstractList;
+import java.util.ArrayList;
 import java.util.Objects;
 
 public final class MainClient {
@@ -13,13 +13,16 @@ public final class MainClient {
     private static final int GET_FILE_ID_ARG = 3;
     private static final int GET_CNT_ARGS = 4;
 
+    private static final int RUN_ARG_PORT = 3;
+    private static final int RUN_CNT_ARGS = 4;
+
     private static final int CNT_ARGS = 3;
 
 
     private MainClient() {
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         if (args.length < CNT_ARGS) {
             help();
         }
@@ -47,17 +50,15 @@ public final class MainClient {
 
             client.get(id);
         } else if (Objects.equals(query, "LIST")) {
-            AbstractList<FileInfo> files = client.list();
+            ArrayList<FileInfo> files = client.list();
             for (FileInfo fi : files) {
-                System.err.print(fi.getId());
-                System.err.print(" ");
-                System.err.print(fi.getSize());
-                System.err.print(" ");
-                System.err.print(fi.getName());
-                System.err.print("\n");
+                System.out.println(fi.getId() + " " + fi.getSize() + " " + fi.getName());
             }
         } else if (Objects.equals(query, "RUN")) {
-            client.run();
+            if (args.length < RUN_CNT_ARGS) {
+                help();
+            }
+            client.run(Integer.parseInt(args[RUN_ARG_PORT]));
         } else {
             help();
         }

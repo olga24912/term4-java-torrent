@@ -81,7 +81,7 @@ public class Client {
             for (Integer id: files.keySet()) {
                 dos.writeInt(id);
             }
-            Thread.sleep(1000);
+            Thread.sleep(10000);
         }
     }
 
@@ -118,22 +118,46 @@ public class Client {
     }
 
 
-    public void run() throws IOException {
+    public void run(int port) throws IOException, InterruptedException {
+        this.port = port;
         startSendUpdateQuery();
+        startSeedingThread();
+        ArrayList<FileInfo> fis = list();
+
+        for (FileInfo fi: fis) {
+            if (files.containsKey(fi.getId()) && files.get(fi.getId()) == null) {
+                files.put(fi.getId(), FileInfo.fromServerInfo(fi.getId(), fi.getName(), fi.getSize()));
+            }
+        }
+        while (true) {
+            for (Map.Entry<Integer, FileInfo> entry : files.entrySet()) {
+                if (entry.getValue() != null) {
+                    download(entry.getValue().getId(), entry.getValue().getName(), entry.getValue().getSize());
+                }
+            }
+            Thread.sleep(1000);
+        }
     }
 
-
+    private void startSeedingThread() throws IOException {
+        serverSocket = new ServerSocket(port);
+        Thread thread = new Thread(() -> {
+            try {
+                catheSocket();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+        thread.start();
+    }
 
     //Client as client
     private void download(int id, String name, long size) throws IOException {
-        if (!files.containsKey(id)) {;
-            files.put(id, FileInfo.fromServerInfo(id, name, size));
-        }
-
         ArrayList<ClientAddress> clientsWithFile = sendSourcesQuery(id);
 
         FileInfo file =  files.get(id);
 
+        Collections.shuffle(clientsWithFile);
         for (ClientAddress currentClient : clientsWithFile) {
             Socket socket = new Socket(InetAddress.getByAddress(currentClient.ip), currentClient.port);
             DataInputStream dis = new DataInputStream(socket.getInputStream());
