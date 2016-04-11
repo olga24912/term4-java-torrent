@@ -8,6 +8,7 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 import static java.nio.file.Files.delete;
 import static junit.framework.Assert.assertEquals;
@@ -27,6 +28,7 @@ public class TestTorrent {
     Server server;
     Client client1;
     Client client2;
+    String fileEntry = "test   @";
 
     private static final int CLIENT1_PORT = 8090;
     private static final int CLIENT2_PORT = 8089;
@@ -49,7 +51,6 @@ public class TestTorrent {
     public void testNewFileAndList() throws IOException, InterruptedException {
         PrintWriter writer = new PrintWriter(file1);
 
-        String fileEntry = "test   @";
         writer.print(fileEntry);
 
         writer.close();
@@ -78,7 +79,7 @@ public class TestTorrent {
 
         thread1.start();
 
-        thread1.join();
+        Thread.sleep(100);
 
         Thread thread2 = new Thread(() -> {
             try {
@@ -97,7 +98,6 @@ public class TestTorrent {
     public void testDownload() throws IOException, InterruptedException {
         PrintWriter writer = new PrintWriter(file1);
 
-        String fileEntry = "test   @";
         writer.print(fileEntry);
 
         writer.close();
@@ -125,8 +125,8 @@ public class TestTorrent {
         });
 
         thread1.start();
+        Thread.sleep(1000);
 
-        //thread1.join();
         Thread thread2 = new Thread(() -> {
             try {
                 downloadClient2();
@@ -138,14 +138,26 @@ public class TestTorrent {
         });
         thread2.start();
 
-        thread2.join();
+
+        Thread.sleep(1000);
+
+        thread1.interrupt();
+        thread2.interrupt();
         server.stop();
+        File file = new File (tmpDir2.toString() + File.separator + "down");
+
+        Scanner in = new Scanner(file);
+        String resS = in.nextLine();
+
+        System.err.println(resS);
+
+        assertEquals(fileEntry, resS);
     }
 
     private void downloadClient2() throws IOException, InterruptedException {
         client2 = new Client("localhost", fileState2.getAbsolutePath());
         ArrayList<FileInfo> res = client2.list();
-        client2.get(res.get(0).getId());
+        client2.get(res.get(0).getId(), tmpDir2.toString() + File.separator + "down");
 
         client2.run(CLIENT2_PORT);
     }

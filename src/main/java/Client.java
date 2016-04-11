@@ -56,7 +56,7 @@ public class Client {
 
     private void catheSocket() throws IOException {
         while (true) {
-            System.err.println("white query " + Thread.currentThread().getName());
+            //System.err.println("white query " + Thread.currentThread().getName());
             Socket socket = this.serverSocket.accept();
             if (socket != null) {
                 handlingQuery(socket);
@@ -107,8 +107,9 @@ public class Client {
     }
 
 
-    public void get(int id) {
-        files.put(id, null);
+    public void get(int id, String name) throws FileNotFoundException {
+        FileInfo fileInfo = FileInfo.fromServerInfo(id, name, -1);
+        files.put(id, fileInfo);
     }
 
     public int newFile(String name) throws IOException {
@@ -132,20 +133,20 @@ public class Client {
         this.port = port;
         startSendUpdateQuery();
         startSeedingThread();
-        System.err.println("start run");
+        //System.err.println("start run");
         ArrayList<FileInfo> fis = list();
-        System.err.println("start after list");
+        //System.err.println("start after list");
 
         for (FileInfo fi: fis) {
             System.err.println(fi.getId());
-            if (files.containsKey(fi.getId()) && files.get(fi.getId()) == null) {
-                files.put(fi.getId(), FileInfo.fromServerInfo(fi.getId(), fi.getName(), fi.getSize()));
+            if (files.containsKey(fi.getId()) && files.get(fi.getId()).getSize() == -1) {
+                files.put(fi.getId(), FileInfo.fromServerInfo(fi.getId(), files.get(fi.getId()).getName(), fi.getSize()));
             }
         }
         while (true) {
-            System.err.println("start download file");
+            //System.err.println("start download file");
             for (Map.Entry<Integer, FileInfo> entry : files.entrySet()) {
-                if (entry.getValue() != null) {
+                if (entry.getValue().getSize() != -1) {
                     System.err.println(entry.getValue().getId() +  Thread.currentThread().getName());
                     download(entry.getValue().getId(), entry.getValue().getName(), entry.getValue().getSize());
                 }
@@ -167,11 +168,11 @@ public class Client {
     }
 
     private void download(int id, String name, long size) throws IOException {
-        System.err.println(id + " " + name + " " +  size);
+        //System.err.println(id + " " + name + " " +  size);
 
         ArrayList<ClientAddress> clientsWithFile = sendSourcesQuery(id);
 
-        System.err.println("clients size: "  + clientsWithFile.size());
+        //System.err.println("clients size: "  + clientsWithFile.size());
         FileInfo file =  files.get(id);
 
         Collections.shuffle(clientsWithFile);
@@ -180,18 +181,18 @@ public class Client {
             DataInputStream dis = new DataInputStream(socket.getInputStream());
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
-            System.err.println(InetAddress.getByAddress(currentClient.ip));
+            //System.err.println(InetAddress.getByAddress(currentClient.ip));
 
             ArrayList<Integer> parts = sendStatQuery(dis, dos, id);
 
-            System.err.println("Start save parts " + id);
+            //System.err.println("Start save parts " + id);
 
             for (Integer partNum: parts) {
                 if (file.needPart(partNum)) {
-                    System.err.println("need part " + partNum);
+                    //System.err.println("need part " + partNum);
                     byte[] partEntry = sendGetQuery(dis, dos, file, partNum);
                     file.savePart(partEntry, partNum);
-                    System.err.println("Save part " + partNum + " " + id);
+                    //System.err.println("Save part " + partNum + " " + id);
                 }
             }
             socket.close();
@@ -199,7 +200,7 @@ public class Client {
     }
 
     private byte[] sendGetQuery(DataInputStream dis, DataOutputStream dos, FileInfo file, int partNum) throws IOException {
-        System.err.println("Get Query " + file.getId() + " " + partNum);
+        //System.err.println("Get Query " + file.getId() + " " + partNum);
 
         dos.writeByte(2);
         dos.writeInt(file.getId());
@@ -221,9 +222,9 @@ public class Client {
 
         ArrayList<Integer> parts = new ArrayList<>();
 
-        System.err.println("StatQuery");
+        //System.err.println("StatQuery");
         int count = dis.readInt();
-        System.err.println("parts count: " + count);
+        //System.err.println("parts count: " + count);
         for (int i = 0; i < count; ++i) {
             int partNum = dis.readInt();
             parts.add(partNum);
@@ -239,18 +240,18 @@ public class Client {
         dos.writeByte(Constants.SOURCES_QUERY);
         dos.writeInt(id);
 
-        System.err.println("Send sources query");
+        //System.err.println("Send sources query");
 
         ArrayList<ClientAddress> clients = new ArrayList<>();
         int cnt = dis.readInt();
-        System.err.println("cnt: " + cnt);
+        //System.err.println("cnt: " + cnt);
 
         for (int i = 0; i < cnt; ++i) {
             ClientAddress clientAddress = new ClientAddress();
             dis.read(clientAddress.ip);
-            System.err.println("ip: " + Arrays.toString(clientAddress.ip));
+            //System.err.println("ip: " + Arrays.toString(clientAddress.ip));
             clientAddress.port = dis.readShort();
-            System.err.println("port: " + clientAddress.port);
+            //System.err.println("port: " + clientAddress.port);
             clients.add(clientAddress);
         }
 

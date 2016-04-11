@@ -11,7 +11,8 @@ public final class MainClient {
     private static final int NEW_FILE_CNT_ARGS = 4;
 
     private static final int GET_FILE_ID_ARG = 3;
-    private static final int GET_CNT_ARGS = 4;
+    private static final int GET_FILE_NAME_ARG = 4;
+    private static final int GET_CNT_ARGS = 5;
 
     private static final int RUN_ARG_PORT = 3;
     private static final int RUN_CNT_ARGS = 4;
@@ -47,8 +48,9 @@ public final class MainClient {
             }
 
             int id = Integer.parseInt(args[GET_FILE_ID_ARG]);
+            String name = args[GET_FILE_NAME_ARG];
 
-            client.get(id);
+            client.get(id, name);
         } else if (Objects.equals(query, "LIST")) {
             ArrayList<FileInfo> files = client.list();
             for (FileInfo fi : files) {
