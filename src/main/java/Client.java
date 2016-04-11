@@ -138,7 +138,7 @@ public class Client {
         //System.err.println("start after list");
 
         for (FileInfo fi: fis) {
-            System.err.println(fi.getId());
+            //System.err.println(fi.getId());
             if (files.containsKey(fi.getId()) && files.get(fi.getId()).getSize() == -1) {
                 files.put(fi.getId(), FileInfo.fromServerInfo(fi.getId(), files.get(fi.getId()).getName(), fi.getSize()));
             }
@@ -147,7 +147,7 @@ public class Client {
             //System.err.println("start download file");
             for (Map.Entry<Integer, FileInfo> entry : files.entrySet()) {
                 if (entry.getValue().getSize() != -1) {
-                    System.err.println(entry.getValue().getId() +  Thread.currentThread().getName());
+                    //System.err.println(entry.getValue().getId() +  Thread.currentThread().getName());
                     download(entry.getValue().getId(), entry.getValue().getName(), entry.getValue().getSize());
                 }
             }
@@ -192,7 +192,7 @@ public class Client {
                     //System.err.println("need part " + partNum);
                     byte[] partEntry = sendGetQuery(dis, dos, file, partNum);
                     file.savePart(partEntry, partNum);
-                    //System.err.println("Save part " + partNum + " " + id);
+                    System.err.println("Save part " + partNum + " " + id);
                 }
             }
             socket.close();

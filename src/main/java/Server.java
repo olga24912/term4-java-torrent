@@ -182,7 +182,7 @@ public class Server {
         newClient.ip = ip;
         newClient.port = seed_port;
 
-        System.err.println("Client Port update " + seed_port);
+        //System.err.println("Client Port update " + seed_port);
 
         deleteClient(newClient);
 
@@ -191,7 +191,7 @@ public class Server {
             Integer fileId = dis.readInt();
             clientsFilesId.add(fileId);
 
-            System.err.println(fileId);
+            //System.err.println(fileId);
             if (filesByID.containsKey(fileId)) {
                 filesByID.get(fileId).clients.add(newClient);
             } else {
@@ -201,7 +201,7 @@ public class Server {
         }
         activeClient.put(newClient, new ClientInfo(clientsFilesId, System.currentTimeMillis()));
 
-        System.err.println("update");
+        //System.err.println("update");
         dos.writeBoolean(true);
     }
 

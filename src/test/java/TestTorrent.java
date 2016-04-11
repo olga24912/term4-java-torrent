@@ -14,24 +14,27 @@ import static java.nio.file.Files.delete;
 import static junit.framework.Assert.assertEquals;
 
 public class TestTorrent {
-    Path tmpDir;
-    File file1;
-    File fileState;
+    private Path tmpDir;
+    private File file1;
+    private File fileState;
 
-    Path tmpDirServer;
-    File fileStateServer;
+    private Path tmpDirServer;
+    private File fileStateServer;
 
-    Path tmpDir2;
-    File file2;
-    File fileState2;
+    private Path tmpDir2;
+    private File file2;
+    private File fileState2;
 
-    Server server;
-    Client client1;
-    Client client2;
-    String fileEntry = "test   @";
+    private Server server;
+    private Client client1;
+    private Client client2;
+    private String fileEntry = "test   @";
 
     private static final int CLIENT1_PORT = 8090;
     private static final int CLIENT2_PORT = 8089;
+
+    private static final int CLIENT3_PORT = 8091;
+    private static final int CLIENT4_PORT = 8092;
 
     @Before
     public void create() throws IOException {
@@ -45,53 +48,6 @@ public class TestTorrent {
         tmpDir2 = Files.createTempDirectory("torrent2");
         file2 = new File(tmpDir.toString() + File.separator + "file");
         fileState2 = new File(tmpDir.toString() + File.separator + "stateClient2");
-    }
-
-    @Test
-    public void testNewFileAndList() throws IOException, InterruptedException {
-        PrintWriter writer = new PrintWriter(file1);
-
-        writer.print(fileEntry);
-
-        writer.close();
-
-        Thread thread = new Thread(() -> {
-            try {
-                createServer();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-
-        thread.start();
-
-        Thread.sleep(100);
-
-        Thread thread1 = new Thread(() -> {
-            try {
-                createClient1();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        });
-
-        thread1.start();
-
-        Thread.sleep(100);
-
-        Thread thread2 = new Thread(() -> {
-            try {
-                createClient2();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-        thread2.start();
-
-        thread2.join();
-        server.stop();
     }
 
     @Test
@@ -116,10 +72,8 @@ public class TestTorrent {
 
         Thread thread1 = new Thread(() -> {
             try {
-                createClient1();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
+                createClient1(CLIENT3_PORT);
+            } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
         });
@@ -129,7 +83,7 @@ public class TestTorrent {
 
         Thread thread2 = new Thread(() -> {
             try {
-                downloadClient2();
+                downloadClient2(CLIENT4_PORT);
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (InterruptedException e) {
@@ -154,14 +108,63 @@ public class TestTorrent {
         assertEquals(fileEntry, resS);
     }
 
-    private void downloadClient2() throws IOException, InterruptedException {
+
+    @Test
+    public void testNewFileAndList() throws IOException, InterruptedException {
+        PrintWriter writer = new PrintWriter(file1);
+
+        writer.print(fileEntry);
+
+        writer.close();
+
+        Thread thread = new Thread(() -> {
+            try {
+                createServer();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        thread.start();
+
+        Thread.sleep(100);
+
+        Thread thread1 = new Thread(() -> {
+            try {
+                createClient1(CLIENT1_PORT);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+
+        thread1.start();
+
+        Thread.sleep(100);
+
+        Thread thread2 = new Thread(() -> {
+            try {
+                createClient2();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+        thread2.start();
+
+        thread2.join();
+
+        thread1.interrupt();
+        server.stop();
+    }
+
+    private void downloadClient2(int port) throws IOException, InterruptedException {
         client2 = new Client("localhost", fileState2.getAbsolutePath());
         ArrayList<FileInfo> res = client2.list();
         client2.get(res.get(0).getId(), tmpDir2.toString() + File.separator + "down");
 
-        client2.run(CLIENT2_PORT);
+        client2.run(port);
     }
-
 
     private void createClient2() throws IOException {
         client2 = new Client("localhost", fileState2.getAbsolutePath());
@@ -171,10 +174,10 @@ public class TestTorrent {
         assertEquals(res.get(0).getName(), file1.getPath());
     }
 
-    private void createClient1() throws IOException, InterruptedException {
+    private void createClient1(int port) throws IOException, InterruptedException {
         client1 = new Client("localhost", fileState.getAbsolutePath());
         client1.newFile(file1.getPath());
-        client1.run(CLIENT1_PORT);
+        client1.run(port);
     }
 
     private void createServer() throws IOException {
@@ -196,5 +199,4 @@ public class TestTorrent {
 
         delete(dir.toAbsolutePath());
     }
-
 }
