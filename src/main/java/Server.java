@@ -225,7 +225,7 @@ public class Server {
         private ArrayList<Integer> files = new ArrayList<>();
         private long lastUpdateTime;
 
-        public ClientInfo(ArrayList<Integer> files, long lastUpdateTime) {
+        ClientInfo(ArrayList<Integer> files, long lastUpdateTime) {
             this.files.addAll(files);
             this.lastUpdateTime = lastUpdateTime;
         }
