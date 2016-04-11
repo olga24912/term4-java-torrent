@@ -1,3 +1,5 @@
+package ru.spbau.mit;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -86,9 +88,7 @@ public class TestTorrent {
         Thread thread2 = new Thread(() -> {
             try {
                 downloadClient2(CLIENT4_PORT);
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
+            } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
         });

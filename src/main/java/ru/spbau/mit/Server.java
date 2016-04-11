@@ -1,3 +1,5 @@
+package ru.spbau.mit;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -6,7 +8,6 @@ import java.security.SecureRandom;
 import java.util.*;
 
 public class Server {
-    private static final long WAITING_TIME = 60000;
     private ServerSocket serverSocket;
 
     private Map<Integer, FileEntry> filesByID = new HashMap<>();
@@ -144,7 +145,7 @@ public class Server {
         long currentTime = System.currentTimeMillis();
 
         for (ClientAddress client : file.clients) {
-            if (activeClient.get(client).lastUpdateTime < currentTime - WAITING_TIME) {
+            if (activeClient.get(client).lastUpdateTime < currentTime - Constants.UPDATE_TIMEOUT) {
                 del.add(client);
             }
         }
@@ -180,8 +181,6 @@ public class Server {
         newClient.setIp(ip);
         newClient.setPort(seedPort);
 
-        //System.err.println("Client Port update " + seed_port);
-
         deleteClient(newClient);
 
         int count = dis.readInt();
@@ -190,7 +189,6 @@ public class Server {
             Integer fileId = dis.readInt();
             clientsFilesId.add(fileId);
 
-            //System.err.println(fileId);
             if (filesByID.containsKey(fileId)) {
                 filesByID.get(fileId).clients.add(newClient);
             } else {
@@ -200,7 +198,6 @@ public class Server {
         }
         activeClient.put(newClient, new ClientInfo(clientsFilesId, System.currentTimeMillis()));
 
-        //System.err.println("update");
         dos.writeBoolean(true);
     }
 

@@ -1,3 +1,5 @@
+package ru.spbau.mit;
+
 public final class Constants {
     public static final int SERVER_PORT = 8081;
 
@@ -8,6 +10,8 @@ public final class Constants {
 
     public static final int STAT_QUERY = 1;
     public static final int GET_QUERY = 2;
+    public static final int UPDATE_INTERVAL = 1000;
+    public static final long UPDATE_TIMEOUT = 60000;
 
     private Constants() {
     }
