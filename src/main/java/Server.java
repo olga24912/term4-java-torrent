@@ -174,8 +174,6 @@ public class Server {
 
     private void handlingUpdateQuery(DataInputStream dis, DataOutputStream dos, Socket socket) throws IOException {
         short seedPort = dis.readShort();
-        int count = dis.readInt();
-
         byte[] ip = socket.getInetAddress().getAddress();
 
         ClientAddress newClient = new ClientAddress();
@@ -186,6 +184,7 @@ public class Server {
 
         deleteClient(newClient);
 
+        int count = dis.readInt();
         ArrayList<Integer> clientsFilesId = new ArrayList<>();
         for (int i = 0; i < count; ++i) {
             Integer fileId = dis.readInt();
@@ -223,11 +222,11 @@ public class Server {
     }
 
     private class ClientInfo {
-        private ArrayList<Integer> files;
+        private ArrayList<Integer> files = new ArrayList<>();
         private long lastUpdateTime;
 
         public ClientInfo(ArrayList<Integer> files, long lastUpdateTime) {
-            this.files = files;
+            this.files.addAll(files);
             this.lastUpdateTime = lastUpdateTime;
         }
     }

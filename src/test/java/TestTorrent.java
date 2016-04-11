@@ -70,7 +70,7 @@ public class TestTorrent {
 
         thread.start();
 
-        Thread.sleep(100);
+        Thread.sleep(SLEEP_TIME);
 
         Thread thread1 = new Thread(() -> {
             try {
@@ -100,7 +100,7 @@ public class TestTorrent {
         thread1.interrupt();
         thread2.interrupt();
         server.stop();
-        File file = new File (tmpDir2.toString() + File.separator + "down");
+        File file = new File(tmpDir2.toString() + File.separator + "down");
 
         Scanner in = new Scanner(file);
         String resS = in.nextLine();

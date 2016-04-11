@@ -1,4 +1,4 @@
-public class Constants {
+public final class Constants {
     public static final int SERVER_PORT = 8081;
 
     public static final int LIST_QUERY = 1;

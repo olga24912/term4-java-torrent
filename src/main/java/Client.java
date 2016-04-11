@@ -217,7 +217,8 @@ public class Client {
         }
     }
 
-    private ArrayList<Integer> sendStatQuery(DataInputStream dis, DataOutputStream dos, int id) throws IOException {
+    private ArrayList<Integer> sendStatQuery(DataInputStream dis, DataOutputStream dos, int id)
+            throws IOException {
         dos.writeByte(Constants.STAT_QUERY);
         dos.writeInt(id);
 
