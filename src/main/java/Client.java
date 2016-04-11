@@ -106,7 +106,6 @@ public class Client {
     public void close() throws IOException {
     }
 
-
     public void get(int id, String name) throws FileNotFoundException {
         FileInfo fileInfo = FileInfo.fromServerInfo(id, name, -1);
         files.put(id, fileInfo);
@@ -127,7 +126,6 @@ public class Client {
     public ArrayList<FileInfo> list() throws IOException {
         return sendListQuery();
     }
-
 
     public void run(int port) throws IOException, InterruptedException {
         this.port = port;
