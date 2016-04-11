@@ -7,6 +7,7 @@ import java.util.*;
 public class Client {
     public static final int SERVER_PORT = 8081;
 
+    private static final int SLEEP_TIME = 1000;
     private File stateFile;
 
     private ServerSocket serverSocket;
@@ -16,10 +17,10 @@ public class Client {
     private Map<Integer, FileInfo> files;
     private String host;
 
-    public Client(String host, String path_info) throws IOException {
+    public Client(String host, String pathInfo) throws IOException {
         this.host = host;
 
-        stateFile = new File(path_info);
+        stateFile = new File(pathInfo);
 
         files = new HashMap<>();
 
@@ -76,12 +77,12 @@ public class Client {
             dos.writeShort(port);
             dos.writeInt(files.size());
 
-            for (Integer id: files.keySet()) {
+            for (Integer id : files.keySet()) {
                 dos.writeInt(id);
             }
 
             socket.close();
-            Thread.sleep(10000);
+            Thread.sleep(SLEEP_TIME);
         }
     }
 
@@ -135,10 +136,11 @@ public class Client {
         ArrayList<FileInfo> fis = list();
         //System.err.println("start after list");
 
-        for (FileInfo fi: fis) {
+        for (FileInfo fi : fis) {
             //System.err.println(fi.getId());
             if (files.containsKey(fi.getId()) && files.get(fi.getId()).getSize() == -1) {
-                files.put(fi.getId(), FileInfo.fromServerInfo(fi.getId(), files.get(fi.getId()).getName(), fi.getSize()));
+                files.put(fi.getId(),
+                        FileInfo.fromServerInfo(fi.getId(), files.get(fi.getId()).getName(), fi.getSize()));
             }
         }
         while (true) {
@@ -149,7 +151,7 @@ public class Client {
                     download(entry.getValue().getId(), entry.getValue().getName(), entry.getValue().getSize());
                 }
             }
-            Thread.sleep(1000);
+            Thread.sleep(SLEEP_TIME);
         }
     }
 
@@ -171,11 +173,11 @@ public class Client {
         ArrayList<ClientAddress> clientsWithFile = sendSourcesQuery(id);
 
         //System.err.println("clients size: "  + clientsWithFile.size());
-        FileInfo file =  files.get(id);
+        FileInfo file = files.get(id);
 
         Collections.shuffle(clientsWithFile);
         for (ClientAddress currentClient : clientsWithFile) {
-            Socket socket = new Socket(InetAddress.getByAddress(currentClient.ip), currentClient.port);
+            Socket socket = new Socket(InetAddress.getByAddress(currentClient.getIp()), currentClient.getPort());
             DataInputStream dis = new DataInputStream(socket.getInputStream());
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
@@ -185,7 +187,7 @@ public class Client {
 
             //System.err.println("Start save parts " + id);
 
-            for (Integer partNum: parts) {
+            for (Integer partNum : parts) {
                 if (file.needPart(partNum)) {
                     //System.err.println("need part " + partNum);
                     byte[] partEntry = sendGetQuery(dis, dos, file, partNum);
@@ -197,7 +199,8 @@ public class Client {
         }
     }
 
-    private byte[] sendGetQuery(DataInputStream dis, DataOutputStream dos, FileInfo file, int partNum) throws IOException {
+    private byte[] sendGetQuery(DataInputStream dis, DataOutputStream dos, FileInfo file, int partNum)
+            throws IOException {
         //System.err.println("Get Query " + file.getId() + " " + partNum);
 
         dos.writeByte(2);
@@ -246,9 +249,9 @@ public class Client {
 
         for (int i = 0; i < cnt; ++i) {
             ClientAddress clientAddress = new ClientAddress();
-            dis.read(clientAddress.ip);
+            dis.read(clientAddress.getIp());
             //System.err.println("ip: " + Arrays.toString(clientAddress.ip));
-            clientAddress.port = dis.readShort();
+            clientAddress.setPort(dis.readShort());
             //System.err.println("port: " + clientAddress.port);
             clients.add(clientAddress);
         }
@@ -309,7 +312,7 @@ public class Client {
         PrintWriter out = new PrintWriter(stateFile);
         out.print(files.size());
         out.print("\n");
-        for (Map.Entry<Integer, FileInfo> entry: files.entrySet()) {
+        for (Map.Entry<Integer, FileInfo> entry : files.entrySet()) {
             if (entry.getValue() != null) {
                 entry.getValue().writeInfo(out);
             } else {

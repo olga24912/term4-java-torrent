@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Scanner;
 
 public class FileInfo implements Serializable {
-    private static final int PART_SIZE = (2 << 10);
+    private static final int PART_SIZE = 2048;
 
     private RandomAccessFile file;
     private String name;
@@ -12,7 +12,8 @@ public class FileInfo implements Serializable {
     private boolean[] parts;
     private int id;
 
-    public static FileInfo fromLocalFile(DataInputStream dis, DataOutputStream dos, String name) throws IOException {
+    public static FileInfo fromLocalFile(DataInputStream dis, DataOutputStream dos, String name)
+            throws IOException {
         FileInfo fileInfo = new FileInfo();
 
         fileInfo.file = new RandomAccessFile(name, "r");
@@ -36,7 +37,7 @@ public class FileInfo implements Serializable {
         FileInfo fileInfo = new FileInfo();
 
         fileInfo.file = new RandomAccessFile(name, "rw");
-        fileInfo.id  = id;
+        fileInfo.id = id;
         fileInfo.size = size;
         fileInfo.parts = new boolean[getPartsCount(fileInfo.size)];
         fileInfo.name = name;
@@ -67,7 +68,7 @@ public class FileInfo implements Serializable {
     }
 
     private static int getPartsCount(long size) {
-        return (int) ((size + PART_SIZE - 1)/PART_SIZE);
+        return (int) ((size + PART_SIZE - 1) / PART_SIZE);
     }
 
     public int getId() {
@@ -92,7 +93,7 @@ public class FileInfo implements Serializable {
     }
 
     public long getPosOfPart(int partNum) {
-        return partNum*(long)PART_SIZE;
+        return partNum * ((long) PART_SIZE);
     }
 
     public ArrayList<Integer> getExistingParts() {

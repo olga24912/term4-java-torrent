@@ -28,10 +28,10 @@ public final class MainClient {
             help();
         }
         String host = args[HOST_ARG];
-        String path_info = args[PATH_INFO_ARG];
+        String pathInfo = args[PATH_INFO_ARG];
         String query = args[QUERY_ARG];
 
-        Client client = new Client(host, path_info);
+        Client client = new Client(host, pathInfo);
 
         if (Objects.equals(query, "NEW_FILE")) {
             if (args.length < NEW_FILE_CNT_ARGS) {

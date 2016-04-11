@@ -14,6 +14,14 @@ import static java.nio.file.Files.delete;
 import static junit.framework.Assert.assertEquals;
 
 public class TestTorrent {
+    private static final int CLIENT1_PORT = 8090;
+    private static final int CLIENT2_PORT = 8089;
+    private static final int CLIENT3_PORT = 8091;
+    private static final int CLIENT4_PORT = 8092;
+
+    private static final int SLEEP_TIME = 1000;
+
+
     private Path tmpDir;
     private File file1;
     private File fileState;
@@ -29,12 +37,6 @@ public class TestTorrent {
     private Client client1;
     private Client client2;
     private String fileEntry = "test   @";
-
-    private static final int CLIENT1_PORT = 8090;
-    private static final int CLIENT2_PORT = 8089;
-
-    private static final int CLIENT3_PORT = 8091;
-    private static final int CLIENT4_PORT = 8092;
 
     @Before
     public void create() throws IOException {
@@ -79,7 +81,7 @@ public class TestTorrent {
         });
 
         thread1.start();
-        Thread.sleep(1000);
+        Thread.sleep(SLEEP_TIME);
 
         Thread thread2 = new Thread(() -> {
             try {
@@ -93,7 +95,7 @@ public class TestTorrent {
         thread2.start();
 
 
-        Thread.sleep(1000);
+        Thread.sleep(SLEEP_TIME);
 
         thread1.interrupt();
         thread2.interrupt();
@@ -127,7 +129,7 @@ public class TestTorrent {
 
         thread.start();
 
-        Thread.sleep(100);
+        Thread.sleep(SLEEP_TIME);
 
         Thread thread1 = new Thread(() -> {
             try {
@@ -141,7 +143,7 @@ public class TestTorrent {
 
         thread1.start();
 
-        Thread.sleep(100);
+        Thread.sleep(SLEEP_TIME);
 
         Thread thread2 = new Thread(() -> {
             try {

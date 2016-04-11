@@ -8,4 +8,7 @@ public class Constants {
 
     public static final int STAT_QUERY = 1;
     public static final int GET_QUERY = 2;
+
+    private Constants() {
+    }
 }

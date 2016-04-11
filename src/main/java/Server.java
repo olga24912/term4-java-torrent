@@ -135,7 +135,7 @@ public class Server {
         dos.writeInt(newFile.id);
     }
 
-    private void handlingSourcesQuery(DataInputStream dis,DataOutputStream dos) throws IOException {
+    private void handlingSourcesQuery(DataInputStream dis, DataOutputStream dos) throws IOException {
         int id = dis.readInt();
 
         FileEntry file = filesByID.get(id);
@@ -156,8 +156,8 @@ public class Server {
         dos.writeInt(file.clients.size());
 
         for (ClientAddress client : file.clients) {
-            dos.write(client.ip);
-            dos.writeShort(client.port);
+            dos.write(client.getIp());
+            dos.writeShort(client.getPort());
         }
     }
 
@@ -173,14 +173,14 @@ public class Server {
     }
 
     private void handlingUpdateQuery(DataInputStream dis, DataOutputStream dos, Socket socket) throws IOException {
-        short seed_port = dis.readShort();
+        short seedPort = dis.readShort();
         int count = dis.readInt();
 
         byte[] ip = socket.getInetAddress().getAddress();
 
         ClientAddress newClient = new ClientAddress();
-        newClient.ip = ip;
-        newClient.port = seed_port;
+        newClient.setIp(ip);
+        newClient.setPort(seedPort);
 
         //System.err.println("Client Port update " + seed_port);
 
@@ -215,16 +215,16 @@ public class Server {
     }
 
     public static class FileEntry {
-        int id;
-        String name;
-        long size;
+        private int id;
+        private String name;
+        private long size;
 
-        Set<ClientAddress> clients = new HashSet<>();
+        private Set<ClientAddress> clients = new HashSet<>();
     }
 
     private class ClientInfo {
-        ArrayList<Integer> files;
-        long lastUpdateTime;
+        private ArrayList<Integer> files;
+        private long lastUpdateTime;
 
         public ClientInfo(ArrayList<Integer> files, long lastUpdateTime) {
             this.files = files;
