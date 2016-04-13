@@ -124,7 +124,7 @@ public class Client {
     }
 
     public void run(int port) throws IOException, InterruptedException {
-        final int SLEEP_TIME = 1000;
+        final int sleepTime = 1000;
         this.port = port;
         startSendUpdateQuery();
         startSeedingThread();
@@ -142,7 +142,7 @@ public class Client {
                     download(entry.getValue().getId(), entry.getValue().getName(), entry.getValue().getSize());
                 }
             }
-            Thread.sleep(SLEEP_TIME);
+            Thread.sleep(sleepTime);
         }
     }
 
