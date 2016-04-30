@@ -8,22 +8,84 @@ import java.util.*;
 
 public class Client {
     private File stateFile;
-
     private ServerSocket serverSocket;
-
+    // drop
     private int port;
-
     private Map<Integer, FileInfo> files;
-    private String host;
+    private String trackerHost;
 
     public Client(String host, String pathInfo) throws IOException {
-        this.host = host;
+        this.trackerHost = host;
 
         stateFile = new File(pathInfo);
 
         files = new HashMap<>();
 
         loadState();
+    }
+
+    public void get(int id, String name) throws FileNotFoundException {
+        FileInfo fileInfo = FileInfo.fromServerInfo(id, name, -1);
+        files.put(id, fileInfo);
+    }
+
+    public int newFile(String name) throws IOException {
+        Socket socket = new Socket(trackerHost, Constants.SERVER_PORT);
+        DataInputStream dis = new DataInputStream(socket.getInputStream());
+        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+        FileInfo fileInfo = FileInfo.fromLocalFile(dis, dos, name);
+        files.put(fileInfo.getId(), fileInfo);
+
+        socket.close();
+        return fileInfo.getId();
+    }
+
+    public ArrayList<FileInfo> list() throws IOException {
+        return sendListQuery();
+    }
+
+    public void run(int port) throws IOException, InterruptedException {
+        // make constant
+        final int sleepTime = 1000;
+        this.port = port;
+        startSendUpdateQuery();
+        startSeedingThread();
+        ArrayList<FileInfo> fis = list();
+
+        for (FileInfo fi : fis) {
+            if (files.containsKey(fi.getId()) && files.get(fi.getId()).getSize() == -1) {
+                files.put(fi.getId(),
+                        // just use fi
+                        FileInfo.fromServerInfo(fi.getId(), files.get(fi.getId()).getName(), fi.getSize()));
+            }
+        }
+        while (true) {
+            for (Map.Entry<Integer, FileInfo> entry : files.entrySet()) {
+                if (entry.getValue().getSize() != -1) {
+                    download(entry.getValue().getId());
+                }
+            }
+            Thread.sleep(sleepTime);
+        }
+    }
+
+    private ArrayList<FileInfo> sendListQuery() throws IOException {
+        Socket socket = new Socket(trackerHost, Constants.SERVER_PORT);
+        DataInputStream dis = new DataInputStream(socket.getInputStream());
+        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+        dos.writeByte(Constants.LIST_QUERY);
+        int count = dis.readInt();
+
+        ArrayList<FileInfo> filesOnServer = new ArrayList<>();
+
+        for (int i = 0; i < count; ++i) {
+            filesOnServer.add(FileInfo.fromServerInfo(dis.readInt(), dis.readUTF(), dis.readLong()));
+        }
+
+        socket.close();
+        return filesOnServer;
     }
 
     public Thread startSendUpdateQuery() throws IOException {
@@ -42,33 +104,11 @@ public class Client {
         return thread;
     }
 
-    public Thread startCatheSocket() throws IOException {
-        Thread thread = new Thread(() -> {
-            try {
-                catheSocket();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
-        thread.start();
-        return thread;
-    }
-
-    private void catheSocket() throws IOException {
-        while (true) {
-            Socket socket = this.serverSocket.accept();
-            if (socket != null) {
-                handlingQuery(socket);
-            } else {
-                return;
-            }
-        }
-    }
-
+    // use java.util.Timer
     private void sendUpdateQuery() throws IOException, InterruptedException {
+        // add shutdown flag
         while (true) {
-            Socket socket = new Socket(host, Constants.SERVER_PORT);
-            DataInputStream dis = new DataInputStream(socket.getInputStream());
+            Socket socket = new Socket(trackerHost, Constants.SERVER_PORT);
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
             dos.writeByte(Constants.UPDATE_QUERY);
@@ -80,69 +120,8 @@ public class Client {
             }
 
             socket.close();
+            //
             Thread.sleep(Constants.UPDATE_INTERVAL);
-        }
-    }
-
-    private ArrayList<FileInfo> sendListQuery() throws IOException {
-        Socket socket = new Socket(host, Constants.SERVER_PORT);
-        DataInputStream dis = new DataInputStream(socket.getInputStream());
-        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-
-        dos.writeByte(Constants.LIST_QUERY);
-        int count = dis.readInt();
-
-        ArrayList<FileInfo> filesOnServer = new ArrayList<>();
-
-        for (int i = 0; i < count; ++i) {
-            filesOnServer.add(FileInfo.fromServerInfo(dis.readInt(), dis.readUTF(), dis.readLong()));
-        }
-
-        socket.close();
-        return filesOnServer;
-    }
-
-    public void get(int id, String name) throws FileNotFoundException {
-        FileInfo fileInfo = FileInfo.fromServerInfo(id, name, -1);
-        files.put(id, fileInfo);
-    }
-
-    public int newFile(String name) throws IOException {
-        Socket socket = new Socket(host, Constants.SERVER_PORT);
-        DataInputStream dis = new DataInputStream(socket.getInputStream());
-        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-
-        FileInfo fileInfo = FileInfo.fromLocalFile(dis, dos, name);
-        files.put(fileInfo.getId(), fileInfo);
-
-        socket.close();
-        return fileInfo.getId();
-    }
-
-    public ArrayList<FileInfo> list() throws IOException {
-        return sendListQuery();
-    }
-
-    public void run(int port) throws IOException, InterruptedException {
-        final int sleepTime = 1000;
-        this.port = port;
-        startSendUpdateQuery();
-        startSeedingThread();
-        ArrayList<FileInfo> fis = list();
-
-        for (FileInfo fi : fis) {
-            if (files.containsKey(fi.getId()) && files.get(fi.getId()).getSize() == -1) {
-                files.put(fi.getId(),
-                        FileInfo.fromServerInfo(fi.getId(), files.get(fi.getId()).getName(), fi.getSize()));
-            }
-        }
-        while (true) {
-            for (Map.Entry<Integer, FileInfo> entry : files.entrySet()) {
-                if (entry.getValue().getSize() != -1) {
-                    download(entry.getValue().getId(), entry.getValue().getName(), entry.getValue().getSize());
-                }
-            }
-            Thread.sleep(sleepTime);
         }
     }
 
@@ -150,7 +129,7 @@ public class Client {
         serverSocket = new ServerSocket(port);
         Thread thread = new Thread(() -> {
             try {
-                catheSocket();
+                catchSocket();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -158,7 +137,19 @@ public class Client {
         thread.start();
     }
 
-    private void download(int id, String name, long size) throws IOException {
+    private void catchSocket() throws IOException {
+        while (true) {
+            Socket socket = this.serverSocket.accept();
+            if (socket != null) {
+                handlingQuery(socket);
+            } else {
+                return;
+            }
+        }
+    }
+
+    // unused parameters
+    private void download(int id) throws IOException {
         ArrayList<ClientAddress> clientsWithFile = sendSourcesQuery(id);
 
         FileInfo file = files.get(id);
@@ -214,7 +205,7 @@ public class Client {
     }
 
     private ArrayList<ClientAddress> sendSourcesQuery(int id) throws IOException {
-        Socket socket = new Socket(host, Constants.SERVER_PORT);
+        Socket socket = new Socket(trackerHost, Constants.SERVER_PORT);
         DataInputStream dis = new DataInputStream(socket.getInputStream());
         DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
@@ -252,10 +243,12 @@ public class Client {
                 }
             }
         } catch (IOException ignored) {
+            //  logging
         } finally {
             try {
                 socket.close();
             } catch (IOException ignored) {
+                //throw new IllegalStateException(ignored);
             }
         }
     }

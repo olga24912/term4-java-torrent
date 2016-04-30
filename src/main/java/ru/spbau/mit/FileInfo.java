@@ -8,6 +8,7 @@ import java.util.Scanner;
 public class FileInfo implements Serializable {
     private static final int PART_SIZE = 2048;
 
+    //drop field, open each time when needed
     private RandomAccessFile file;
     private String name;
     private long size;
@@ -48,6 +49,7 @@ public class FileInfo implements Serializable {
         return fileInfo;
     }
 
+    // DataInputStream
     public static FileInfo fromStateFile(Scanner scan) throws FileNotFoundException {
         FileInfo fi = new FileInfo();
         fi.id = scan.nextInt();

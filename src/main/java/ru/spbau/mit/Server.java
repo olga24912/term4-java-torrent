@@ -6,6 +6,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.security.SecureRandom;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Server {
     private ServerSocket serverSocket;
@@ -24,24 +25,6 @@ public class Server {
         stateWriter = new PrintWriter(new FileOutputStream(file, true));
     }
 
-    private void loadState() {
-        Scanner in = null;
-        try {
-            in = new Scanner(stateFile);
-            while (in.hasNext()) {
-                FileEntry entry = new FileEntry();
-                entry.clients = new HashSet<>();
-                entry.id = in.nextInt();
-                entry.name = in.next();
-                entry.size = in.nextLong();
-
-                filesByID.put(entry.id, entry);
-            }
-            in.close();
-        } catch (FileNotFoundException ignored) {
-        }
-    }
-
     public static void main(String[] args) throws IOException {
         new Server(new File(args[0])).start();
     }
@@ -51,7 +34,7 @@ public class Server {
 
         Thread thread = new Thread(() -> {
             try {
-                catchSocket();
+                catchSockets();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -60,11 +43,14 @@ public class Server {
         return thread;
     }
 
-    public synchronized void stop() {
-        try {
-            serverSocket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
+    private void catchSockets() throws IOException {
+        while (true) {
+            Socket socket = accept();
+            if (socket != null) {
+                handleQuery(socket);
+            } else {
+                return;
+            }
         }
     }
 
@@ -74,21 +60,9 @@ public class Server {
         } catch (SocketException e) {
             return null;
         }
-
     }
 
-    private void catchSocket() throws IOException {
-        while (true) {
-            Socket socket = accept();
-            if (socket != null) {
-                handlingQuery(socket);
-            } else {
-                return;
-            }
-        }
-    }
-
-    private void handlingQuery(Socket socket) {
+    private void handleQuery(Socket socket) {
         try {
             DataInputStream dis = new DataInputStream(socket.getInputStream());
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
@@ -96,13 +70,13 @@ public class Server {
             while (!socket.isClosed()) {
                 byte operation = dis.readByte();
                 if (operation == Constants.LIST_QUERY) {
-                    handlingListQuery(dos);
+                    handleListQuery(dos);
                 } else if (operation == Constants.UPLOAD_QUERY) {
-                    handlingUploadQuery(dis, dos);
+                    handleUploadQuery(dis, dos);
                 } else if (operation == Constants.SOURCES_QUERY) {
-                    handlingSourcesQuery(dis, dos);
+                    handleSourcesQuery(dis, dos);
                 } else if (operation == Constants.UPDATE_QUERY) {
-                    handlingUpdateQuery(dis, dos, socket);
+                    handleUpdateQuery(dis, dos, socket);
                 } else {
                     System.err.printf("Wrong query\n");
                 }
@@ -116,7 +90,7 @@ public class Server {
         }
     }
 
-    private void handlingUploadQuery(DataInputStream dis, DataOutputStream dos) throws IOException {
+    private void handleUploadQuery(DataInputStream dis, DataOutputStream dos) throws IOException {
         String name = dis.readUTF();
         Long size = dis.readLong();
 
@@ -136,7 +110,7 @@ public class Server {
         dos.writeInt(newFile.id);
     }
 
-    private void handlingSourcesQuery(DataInputStream dis, DataOutputStream dos) throws IOException {
+    private void handleSourcesQuery(DataInputStream dis, DataOutputStream dos) throws IOException {
         int id = dis.readInt();
 
         FileEntry file = filesByID.get(id);
@@ -144,15 +118,12 @@ public class Server {
         ArrayList<ClientAddress> del = new ArrayList<>();
         long currentTime = System.currentTimeMillis();
 
-        for (ClientAddress client : file.clients) {
-            if (activeClient.get(client).lastUpdateTime < currentTime - Constants.UPDATE_TIMEOUT) {
-                del.add(client);
-            }
-        }
+        del.addAll(file.clients.stream().
+                filter(client -> activeClient.get(client).lastUpdateTime <
+                        currentTime - Constants.UPDATE_TIMEOUT).
+                collect(Collectors.toList()));
 
-        for (ClientAddress client : del) {
-            deleteClient(client);
-        }
+        del.forEach(this::deleteClient);
 
         dos.writeInt(file.clients.size());
 
@@ -162,18 +133,7 @@ public class Server {
         }
     }
 
-    private void deleteClient(ClientAddress client) {
-        if (activeClient.containsKey(client)) {
-            ArrayList<Integer> oldClientsFiles = activeClient.get(client).files;
-            activeClient.remove(client);
-
-            for (Integer oldFiles : oldClientsFiles) {
-                filesByID.get(oldFiles).clients.remove(client);
-            }
-        }
-    }
-
-    private void handlingUpdateQuery(DataInputStream dis, DataOutputStream dos, Socket socket) throws IOException {
+    private void handleUpdateQuery(DataInputStream dis, DataOutputStream dos, Socket socket) throws IOException {
         short seedPort = dis.readShort();
         byte[] ip = socket.getInetAddress().getAddress();
 
@@ -201,12 +161,49 @@ public class Server {
         dos.writeBoolean(true);
     }
 
-    private void handlingListQuery(DataOutputStream dos) throws IOException {
+    private void handleListQuery(DataOutputStream dos) throws IOException {
         dos.writeInt(filesByID.size());
         for (FileEntry entry : filesByID.values()) {
             dos.writeInt(entry.id);
             dos.writeUTF(entry.name);
             dos.writeLong(entry.size);
+        }
+    }
+
+    private void deleteClient(ClientAddress client) {
+        if (activeClient.containsKey(client)) {
+            ArrayList<Integer> oldClientsFiles = activeClient.get(client).files;
+            activeClient.remove(client);
+
+            for (Integer oldFiles : oldClientsFiles) {
+                filesByID.get(oldFiles).clients.remove(client);
+            }
+        }
+    }
+
+    private void loadState() {
+        Scanner in;
+        try {
+            in = new Scanner(stateFile);
+            while (in.hasNext()) {
+                FileEntry entry = new FileEntry();
+                entry.clients = new HashSet<>();
+                entry.id = in.nextInt();
+                entry.name = in.next();
+                entry.size = in.nextLong();
+
+                filesByID.put(entry.id, entry);
+            }
+            in.close();
+        } catch (FileNotFoundException ignored) {
+        }
+    }
+
+    public synchronized void stop() {
+        try {
+            serverSocket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 

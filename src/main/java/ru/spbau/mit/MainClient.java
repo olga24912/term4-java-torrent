@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 public final class MainClient {
+    // magic constant turn off
     private static final int HOST_ARG = 0;
     private static final int PATH_INFO_ARG = 1;
     private static final int QUERY_ARG = 2;
