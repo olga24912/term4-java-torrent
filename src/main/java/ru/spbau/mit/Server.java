@@ -1,5 +1,7 @@
 package ru.spbau.mit;
 
+import org.apache.log4j.Logger;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -9,6 +11,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class Server {
+    private static final Logger LOG = Logger.getLogger(Server.class);
     private ServerSocket serverSocket;
 
     private Map<Integer, FileEntry> filesByID = new HashMap<>();
@@ -20,7 +23,7 @@ public class Server {
     private PrintWriter stateWriter;
 
     public Server(File file) throws FileNotFoundException, UnsupportedEncodingException {
-        System.err.println("server start");
+        LOG.info("server start");
         stateFile = file;
         loadState();
         stateWriter = new PrintWriter(new FileOutputStream(file, true));
@@ -93,14 +96,16 @@ public class Server {
                 } else if (operation == Constants.UPDATE_QUERY) {
                     handleUpdateQuery(dis, dos, socket);
                 } else {
-                    System.err.printf("Wrong query\n");
+                    LOG.warn("Wrong query\n");
                 }
             }
-        } catch (IOException ignored) {
+        } catch (IOException e) {
+            LOG.trace(e.getMessage());
         } finally {
             try {
                 socket.close();
-            } catch (IOException ignored) {
+            } catch (IOException e1) {
+                LOG.trace(e1.getMessage());
             }
         }
     }
@@ -156,7 +161,7 @@ public class Server {
         short seedPort = dis.readShort();
         byte[] ip = socket.getInetAddress().getAddress();
 
-        System.err.println("Update: port-" + seedPort);
+        LOG.debug("Update: port-" + seedPort);
 
         ClientAddress newClient = new ClientAddress();
         newClient.setIp(ip);
@@ -206,7 +211,7 @@ public class Server {
         try {
             serverSocket.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.trace(e.getMessage());
         }
     }
 

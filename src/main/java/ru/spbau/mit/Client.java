@@ -1,5 +1,7 @@
 package ru.spbau.mit;
 
+import org.apache.log4j.Logger;
+
 import java.io.*;
 import java.net.ConnectException;
 import java.net.InetAddress;
@@ -10,6 +12,8 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class Client {
+    private static final Logger LOG = Logger.getLogger(Client.class);
+
     private static final int SLEEP_TIME_BETWEEN_DOWNLOADING_FILES = 100;
     private static final int SLEEP_TIME_BETWEEN_RECONNECT_TO_SERVER = 1000;
 
@@ -61,7 +65,7 @@ public class Client {
 
     public void addToDownloadFile(int id) throws FileNotFoundException {
         FileInfo fileInfo = FileInfo.fromServerInfo(id, "", -1);
-        System.err.println("file for download id: " + id);
+        LOG.debug("file for download id: " + id);
         files.put(fileInfo.getId(), fileInfo);
     }
 
@@ -82,9 +86,9 @@ public class Client {
     }
 
     public void run() throws IOException, InterruptedException {
-        System.err.println("start run");
+        LOG.info("start run");
         serverSocket = new ServerSocket(genPort());
-        System.err.println("port: " + serverSocket.getLocalPort());
+        LOG.debug("port: " + serverSocket.getLocalPort());
 
         startSeedingThread();
         startSendUpdateQuery();
@@ -147,10 +151,10 @@ public class Client {
                 try {
                     sendUpdateQueries();
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    LOG.trace(e.getMessage());
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException e1) {
+                LOG.trace(e1.getMessage());
             }
         });
         thread.start();
@@ -165,7 +169,7 @@ public class Client {
                 try {
                     sendUpdateQuery();
                 } catch (IOException | InterruptedException e) {
-                    e.printStackTrace();
+                    LOG.trace(e.getMessage());
                 }
             }
         }, 0, Constants.UPDATE_INTERVAL);
@@ -243,7 +247,7 @@ public class Client {
                 if (file.needPart(partNum)) {
                     byte[] partEntry = sendGetQuery(dis, dos, file, partNum);
                     file.savePart(partEntry, partNum);
-                    System.err.println("Save part " + partNum + " " + id);
+                    LOG.info("Save part " + partNum + " " + id);
                 }
             }
             socket.close();
@@ -315,16 +319,16 @@ public class Client {
                 } else if (operation == Constants.GET_QUERY) {
                     handleGetQuery(dis, dos);
                 } else {
-                    System.err.println("Wrong query " + String.format("%x", operation));
+                    LOG.warn("Wrong query " + String.format("%x", operation));
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.trace(e.getMessage());
         } finally {
             try {
                 socket.close();
             } catch (IOException e1) {
-                e1.printStackTrace();
+                LOG.trace(e1.getMessage());
             }
         }
     }
@@ -379,7 +383,7 @@ public class Client {
                 try {
                     Thread.sleep(SLEEP_TIME_BETWEEN_RECONNECT_TO_SERVER);
                 } catch (InterruptedException e1) {
-                    System.err.println("interrupt while reconnect to server");
+                    LOG.trace("interrupt while reconnect to server");
                 }
             }
         }
