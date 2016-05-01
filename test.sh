@@ -1,6 +1,6 @@
 #!/bin/sh
 
-REFERENCE_FILE=/home/olga/Downloads/ideaIC-15.0.3.tar.gz
+REFERENCE_FILE=/home/olga/Downloads/test
 
 if [ ! -f ] ; then
 	echo "File missing: ${REFERENCE_FILE}!"

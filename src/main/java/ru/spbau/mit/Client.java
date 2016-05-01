@@ -37,10 +37,7 @@ public class Client {
         downloadPath = downloadPath.substring(0, downloadPath.length() - 2);
         downloadPath += File.separator + Constants.NAME_DOWNLOAD_DIR;
 
-        File down = new File(downloadPath);
-        if (!down.exists() || !down.isDirectory()) {
-            Files.createDirectory(Paths.get(downloadPath));
-        }
+        createDir(downloadPath);
     }
 
     private void loadState() throws IOException {
@@ -94,7 +91,8 @@ public class Client {
 
         for (FileInfo fi : fis) {
             if (files.containsKey(fi.getId()) && files.get(fi.getId()).getSize() == -1) {
-                String newName = downloadPath + File.separator + fi.getName();
+                String newName = downloadPath + File.separator + fi.getId() + File.separator + fi.getName();
+                createDir(downloadPath + File.separator + fi.getId());
                 System.err.println("new name: " + newName);
                 files.put(fi.getId(),
                         FileInfo.fromServerInfo(fi.getId(), newName, fi.getSize()));
@@ -108,6 +106,13 @@ public class Client {
                 }
             }
             Thread.sleep(SLEEP_TIME_BETWEEN_DOWNLOADING_FILES);
+        }
+    }
+
+    private void createDir(String path) throws IOException {
+        File file = new File(path);
+        if (!file.exists() || !file.isDirectory()) {
+            Files.createDirectory(Paths.get(path));
         }
     }
 
