@@ -3,13 +3,12 @@ package ru.spbau.mit;
 import java.util.Arrays;
 
 public class ClientAddress {
-    private static final int CNT_BYTE_IN_IP = 4;
     private static final int HASH_NUMBER = 31;
     private short port;
     private byte[] ip;
 
     public ClientAddress() {
-        ip = new byte[CNT_BYTE_IN_IP];
+        ip = new byte[Constants.CNT_BYTE_IN_IP];
     }
 
     public void setPort(short port) {

@@ -298,7 +298,9 @@ public class Client {
 
         for (int i = 0; i < cnt; ++i) {
             ClientAddress clientAddress = new ClientAddress();
-            dis.read(clientAddress.getIp());
+            if (dis.read(clientAddress.getIp()) != Constants.CNT_BYTE_IN_IP) {
+                LOG.warn("In client send source query read not 4 byte for ip");
+            }
             clientAddress.setPort(dis.readShort());
             clients.add(clientAddress);
         }

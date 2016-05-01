@@ -20,6 +20,8 @@ public final class Constants {
     public static final int MIN_PORT = 2000;
     public static final int MAX_PORT = 32000;
 
+    public static final int CNT_BYTE_IN_IP = 4;
+
     private Constants() {
     }
 }
