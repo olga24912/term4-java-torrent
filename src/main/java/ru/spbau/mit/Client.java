@@ -363,7 +363,7 @@ public class Client {
         return new Socket(trackerHost, Constants.SERVER_PORT);
     }
 
-    private void stop() throws IOException {
+    public void stop() throws IOException {
         shutdownFlag = true;
         saveState();
         serverSocket.close();

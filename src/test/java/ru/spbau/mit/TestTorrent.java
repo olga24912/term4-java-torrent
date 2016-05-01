@@ -30,6 +30,7 @@ public class TestTorrent {
 
     private Server server;
     private Client client2;
+    private Client client1;
     private String fileEntry = "test   @";
 
     @Before
@@ -88,9 +89,11 @@ public class TestTorrent {
 
         Thread.sleep(SLEEP_TIME);
 
-        thread1.interrupt();
-        thread2.interrupt();
+        client1.stop();
+        client2.stop();
+
         server.stop();
+
 
         File file = new File("." + File.separator + "downloads" + File.separator + "0" + File.separator + "file1");
 
@@ -146,7 +149,7 @@ public class TestTorrent {
 
         thread2.join();
 
-        thread1.interrupt();
+        client1.stop();
         server.stop();
     }
 
@@ -167,7 +170,7 @@ public class TestTorrent {
     }
 
     private void createClient1() throws IOException, InterruptedException {
-        Client client1 = new Client("localhost", fileState.getAbsolutePath());
+        client1 = new Client("localhost", fileState.getAbsolutePath());
         client1.addNewFile(file1.getPath());
         client1.run();
     }
