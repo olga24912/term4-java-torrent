@@ -10,8 +10,8 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class Client {
-    private static final int SLEEP_TIME_BETWEEN_DOWNLOADING_FILES = 1000;
-    private static final int SLEEP_TIME_BETWEEN_RECONNECT_TO_SERVER = 1000;
+    private static final int SLEEP_TIME_BETWEEN_DOWNLOADING_FILES = 100;
+    private static final int SLEEP_TIME_BETWEEN_RECONNECT_TO_SERVER = 100;
 
     private static final int COUNT_OF_TRYING_CONNECT_TO_SERVER = 3;
 

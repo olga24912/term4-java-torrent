@@ -86,6 +86,7 @@ public class FileInfo implements Serializable {
     }
 
     public void savePart(byte[] partEntry, int partNum) throws IOException {
+        System.err.println("Save part to file: " + name);
         RandomAccessFile file = new RandomAccessFile(name, "rw");
         file.seek(getPosOfPart(partNum));
         file.write(partEntry);
