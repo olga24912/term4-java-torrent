@@ -223,7 +223,8 @@ public class Client {
 
         Collections.shuffle(clientsWithFile);
         for (ClientAddress currentClient : clientsWithFile) {
-            Socket socket = new Socket(InetAddress.getByAddress(currentClient.getIp()), currentClient.getPort());
+            Socket socket = connect(InetAddress.getByAddress(currentClient.getIp()).getHostAddress(),
+                    currentClient.getPort());
             DataInputStream dis = new DataInputStream(socket.getInputStream());
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
@@ -357,9 +358,14 @@ public class Client {
     }
 
     private Socket connectToServer() throws IOException {
+        return connect(trackerHost, Constants.SERVER_PORT);
+    }
+
+
+    private Socket connect(String byAddress, int port) throws IOException {
         for (int i = 0; i < COUNT_OF_TRYING_CONNECT_TO_SERVER; ++i) {
             try {
-                return new Socket(trackerHost, Constants.SERVER_PORT);
+                return new Socket(byAddress, port);
             } catch (ConnectException e) {
                 try {
                     Thread.sleep(SLEEP_TIME_BETWEEN_RECONNECT_TO_SERVER);
@@ -368,7 +374,7 @@ public class Client {
                 }
             }
         }
-        return new Socket(trackerHost, Constants.SERVER_PORT);
+        return new Socket(byAddress, port);
     }
 
     public void stop() throws IOException {
