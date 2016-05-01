@@ -8,8 +8,6 @@ import java.util.Scanner;
 public class FileInfo implements Serializable {
     private static final int PART_SIZE = 2048;
 
-    //drop field, open each time when needed
-    private RandomAccessFile file;
     private String name;
     private long size;
     private boolean[] parts;
@@ -17,15 +15,15 @@ public class FileInfo implements Serializable {
 
     public static FileInfo fromLocalFile(DataInputStream dis, DataOutputStream dos, String name)
             throws IOException {
-        FileInfo fileInfo = new FileInfo();
-
-        fileInfo.file = new RandomAccessFile(name, "r");
+        RandomAccessFile file = new RandomAccessFile(name, "r");
 
         dos.writeByte(Constants.UPLOAD_QUERY);
         dos.writeUTF(name);
-        dos.writeLong(fileInfo.file.length());
+        dos.writeLong(file.length());
 
-        fileInfo.size = fileInfo.file.length();
+        FileInfo fileInfo = new FileInfo();
+
+        fileInfo.size = file.length();
         fileInfo.name = name;
         fileInfo.id = dis.readInt();
 
@@ -33,13 +31,13 @@ public class FileInfo implements Serializable {
 
         Arrays.fill(fileInfo.parts, true);
 
+        file.close();
         return fileInfo;
     }
 
     public static FileInfo fromServerInfo(int id, String name, long size) throws FileNotFoundException {
         FileInfo fileInfo = new FileInfo();
 
-        fileInfo.file = new RandomAccessFile(name, "rw");
         fileInfo.id = id;
         fileInfo.size = size;
         fileInfo.parts = new boolean[getPartsCount(fileInfo.size)];
@@ -66,8 +64,6 @@ public class FileInfo implements Serializable {
             fi.parts[i] = (parts.charAt(i) == '1');
         }
 
-        fi.file = new RandomAccessFile(fi.name, "rw");
-
         return fi;
     }
 
@@ -91,9 +87,11 @@ public class FileInfo implements Serializable {
     }
 
     public void savePart(byte[] partEntry, int partNum) throws IOException {
+        RandomAccessFile file = new RandomAccessFile(name, "w");
         file.seek(getPosOfPart(partNum));
         file.write(partEntry);
         parts[partNum] = true;
+        file.close();
     }
 
     public long getPosOfPart(int partNum) {
@@ -115,11 +113,15 @@ public class FileInfo implements Serializable {
             return false;
         }
 
+        RandomAccessFile file = new RandomAccessFile(name, "r");
+
         file.seek(getPosOfPart(part));
 
         byte[] partEntry = new byte[getPartLength(part)];
         file.read(partEntry);
         dos.write(partEntry);
+
+        file.close();
         return true;
     }
 

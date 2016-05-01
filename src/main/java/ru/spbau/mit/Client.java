@@ -1,36 +1,67 @@
 package ru.spbau.mit;
 
 import java.io.*;
+import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class Client {
+    private static final int SLEEP_TIME_BETWEEN_DOWNLOADING_FILES = 1000;
+    private static final int SLEEP_TIME_BETWEEN_RECONNECT_TO_SERVER = 1000;
+
+    private static final int COUNT_OF_TRYING_CONNECT_TO_SERVER = 3;
+
     private File stateFile;
     private ServerSocket serverSocket;
-    // drop
-    private int port;
+
+    private String downloadPath;
+
     private Map<Integer, FileInfo> files;
     private String trackerHost;
 
     public Client(String host, String pathInfo) throws IOException {
         this.trackerHost = host;
-
         stateFile = new File(pathInfo);
-
         files = new HashMap<>();
 
         loadState();
+        createDownloadDir();
     }
 
-    public void get(int id, String name) throws FileNotFoundException {
-        FileInfo fileInfo = FileInfo.fromServerInfo(id, name, -1);
-        files.put(id, fileInfo);
+    private void createDownloadDir() {
+        downloadPath = Paths.get(".").toAbsolutePath().toString();
+        downloadPath = downloadPath.substring(0, downloadPath.length() - 2);
+        downloadPath += File.separator + Constants.NAME_DOWNLOAD_DIR;
     }
 
-    public int newFile(String name) throws IOException {
-        Socket socket = new Socket(trackerHost, Constants.SERVER_PORT);
+    private void loadState() {
+        try {
+            Scanner in = new Scanner(stateFile);
+            int cnt = in.nextInt();
+            for (int i = 0; i < cnt; ++i) {
+                FileInfo fi = FileInfo.fromStateFile(in);
+                if (fi.getSize() < 0) {
+                    files.put(fi.getId(), FileInfo.fromServerInfo(fi.getId(), "", -1));
+                } else {
+                    files.put(fi.getId(), fi);
+                }
+            }
+            in.close();
+        } catch (FileNotFoundException ignored) {
+        }
+    }
+
+    public void addToDownloadFile(int id) throws FileNotFoundException {
+        FileInfo fileInfo = FileInfo.fromServerInfo(id, "", -1);
+        System.err.println("file for download id: " + id);
+        files.put(fileInfo.getId(), fileInfo);
+    }
+
+    public int addNewFile(String name) throws IOException {
+        Socket socket = connectToServer();
         DataInputStream dis = new DataInputStream(socket.getInputStream());
         DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
@@ -38,40 +69,52 @@ public class Client {
         files.put(fileInfo.getId(), fileInfo);
 
         socket.close();
+        System.err.println("add new file");
         return fileInfo.getId();
     }
 
-    public ArrayList<FileInfo> list() throws IOException {
+    public ArrayList<FileInfo> getListOfFileOnServer() throws IOException {
         return sendListQuery();
     }
 
-    public void run(int port) throws IOException, InterruptedException {
-        // make constant
-        final int sleepTime = 1000;
-        this.port = port;
+    public void run() throws IOException, InterruptedException {
+        System.err.println("start run");
+        serverSocket = new ServerSocket(genPort());
+        System.err.println("port: " + serverSocket.getLocalPort());
+
         startSendUpdateQuery();
         startSeedingThread();
-        ArrayList<FileInfo> fis = list();
+        ArrayList<FileInfo> fis = getListOfFileOnServer();
 
         for (FileInfo fi : fis) {
             if (files.containsKey(fi.getId()) && files.get(fi.getId()).getSize() == -1) {
+                String newName = downloadPath + File.separator + fi.getName();
+                System.err.println("new name: " + newName);
                 files.put(fi.getId(),
-                        // just use fi
-                        FileInfo.fromServerInfo(fi.getId(), files.get(fi.getId()).getName(), fi.getSize()));
+                        FileInfo.fromServerInfo(fi.getId(), newName, fi.getSize()));
             }
         }
         while (true) {
             for (Map.Entry<Integer, FileInfo> entry : files.entrySet()) {
+                System.err.println("entry key: " + entry.getKey());
                 if (entry.getValue().getSize() != -1) {
                     download(entry.getValue().getId());
                 }
             }
-            Thread.sleep(sleepTime);
+            Thread.sleep(SLEEP_TIME_BETWEEN_DOWNLOADING_FILES);
         }
     }
 
+    private int genPort() {
+        Random rnd = new Random();
+        rnd.setSeed(System.currentTimeMillis());
+        return (rnd.nextInt() % (Constants.MAX_PORT - Constants.MIN_PORT)
+                + (Constants.MAX_PORT - Constants.MIN_PORT)) % (Constants.MAX_PORT - Constants.MIN_PORT)
+                + Constants.MIN_PORT;
+    }
+
     private ArrayList<FileInfo> sendListQuery() throws IOException {
-        Socket socket = new Socket(trackerHost, Constants.SERVER_PORT);
+        Socket socket = connectToServer();
         DataInputStream dis = new DataInputStream(socket.getInputStream());
         DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
@@ -112,7 +155,7 @@ public class Client {
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
             dos.writeByte(Constants.UPDATE_QUERY);
-            dos.writeShort(port);
+            dos.writeShort(serverSocket.getLocalPort());
             dos.writeInt(files.size());
 
             for (Integer id : files.keySet()) {
@@ -126,7 +169,6 @@ public class Client {
     }
 
     private void startSeedingThread() throws IOException {
-        serverSocket = new ServerSocket(port);
         Thread thread = new Thread(() -> {
             try {
                 catchSocket();
@@ -141,7 +183,7 @@ public class Client {
         while (true) {
             Socket socket = this.serverSocket.accept();
             if (socket != null) {
-                handlingQuery(socket);
+                handleQuery(socket);
             } else {
                 return;
             }
@@ -226,8 +268,7 @@ public class Client {
         return clients;
     }
 
-    //Query from other client
-    private void handlingQuery(Socket socket) {
+    private void handleQuery(Socket socket) {
         try {
             DataInputStream dis = new DataInputStream(socket.getInputStream());
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
@@ -235,15 +276,15 @@ public class Client {
             while (!socket.isClosed()) {
                 int operation = dis.readByte();
                 if (operation == Constants.STAT_QUERY) {
-                    handlingStatQuery(dis, dos);
+                    handleStatQuery(dis, dos);
                 } else if (operation == Constants.GET_QUERY) {
-                    handlingGetQuery(dis, dos);
+                    handleGetQuery(dis, dos);
                 } else {
                     System.err.println("Wrong query " + String.format("%x", operation));
                 }
             }
         } catch (IOException ignored) {
-            //  logging
+            System.err.println("IOException in handle query");
         } finally {
             try {
                 socket.close();
@@ -253,7 +294,7 @@ public class Client {
         }
     }
 
-    private void handlingStatQuery(DataInputStream dis, DataOutputStream dos) throws IOException {
+    private void handleStatQuery(DataInputStream dis, DataOutputStream dos) throws IOException {
         int id = dis.readInt();
         if (!files.containsKey(id)) {
             dos.writeInt(0);
@@ -268,7 +309,7 @@ public class Client {
         }
     }
 
-    private boolean handlingGetQuery(DataInputStream dis, DataOutputStream dos) throws IOException {
+    private boolean handleGetQuery(DataInputStream dis, DataOutputStream dos) throws IOException {
         int id = dis.readInt();
         int part = dis.readInt();
 
@@ -291,20 +332,18 @@ public class Client {
         out.close();
     }
 
-    private void loadState() {
-        try {
-            Scanner in = new Scanner(stateFile);
-            int cnt = in.nextInt();
-            for (int i = 0; i < cnt; ++i) {
-                FileInfo fi = FileInfo.fromStateFile(in);
-                if (fi.getSize() < 0) {
-                    files.put(fi.getId(), null);
-                } else {
-                    files.put(fi.getId(), fi);
+    private Socket connectToServer() throws IOException {
+        for (int i = 0; i < COUNT_OF_TRYING_CONNECT_TO_SERVER; ++i) {
+            try {
+                return new Socket(trackerHost, Constants.SERVER_PORT);
+            } catch (ConnectException e) {
+                try {
+                    Thread.sleep(SLEEP_TIME_BETWEEN_RECONNECT_TO_SERVER);
+                } catch (InterruptedException e1) {
+                    System.err.println("interrupt while reconnect to server");
                 }
             }
-            in.close();
-        } catch (FileNotFoundException ignored) {
         }
+        return new Socket(trackerHost, Constants.SERVER_PORT);
     }
 }

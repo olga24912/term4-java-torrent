@@ -13,6 +13,13 @@ public final class Constants {
     public static final int UPDATE_INTERVAL = 1000;
     public static final long UPDATE_TIMEOUT = 60000;
 
+    public static final String NAME_OF_CLIENT_STATE_FILE = ".torrentClientState";
+    public static final String NAME_OF_SERVER_STATE_FILE = ".torrentServerState";
+    public static final String NAME_DOWNLOAD_DIR = "downloads";
+
+    public static final int MIN_PORT = 2000;
+    public static final int MAX_PORT = 32000;
+
     private Constants() {
     }
 }

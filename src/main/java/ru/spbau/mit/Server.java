@@ -20,13 +20,28 @@ public class Server {
     private PrintWriter stateWriter;
 
     public Server(File file) throws FileNotFoundException, UnsupportedEncodingException {
+        System.err.println("server start");
         stateFile = file;
         loadState();
         stateWriter = new PrintWriter(new FileOutputStream(file, true));
     }
 
-    public static void main(String[] args) throws IOException {
-        new Server(new File(args[0])).start();
+    private void loadState() {
+        Scanner in;
+        try {
+            in = new Scanner(stateFile);
+            while (in.hasNext()) {
+                FileEntry entry = new FileEntry();
+                entry.clients = new HashSet<>();
+                entry.id = in.nextInt();
+                entry.name = in.next();
+                entry.size = in.nextLong();
+
+                filesByID.put(entry.id, entry);
+            }
+            in.close();
+        } catch (FileNotFoundException ignored) {
+        }
     }
 
     public Thread start() throws IOException {
@@ -98,7 +113,7 @@ public class Server {
         newFile.name = name;
         newFile.size = size;
         newFile.clients = new HashSet<>();
-        newFile.id = rnd.nextInt();
+        newFile.id = getNewId();
         while (filesByID.containsKey(newFile.id)) {
             newFile.id = rnd.nextInt();
         }
@@ -110,6 +125,10 @@ public class Server {
         dos.writeInt(newFile.id);
     }
 
+    private int getNewId() {
+        return filesByID.size();
+    }
+
     private void handleSourcesQuery(DataInputStream dis, DataOutputStream dos) throws IOException {
         int id = dis.readInt();
 
@@ -119,8 +138,8 @@ public class Server {
         long currentTime = System.currentTimeMillis();
 
         del.addAll(file.clients.stream().
-                filter(client -> activeClient.get(client).lastUpdateTime <
-                        currentTime - Constants.UPDATE_TIMEOUT).
+                filter(client -> activeClient.get(client).lastUpdateTime
+                        < currentTime - Constants.UPDATE_TIMEOUT).
                 collect(Collectors.toList()));
 
         del.forEach(this::deleteClient);
@@ -178,24 +197,6 @@ public class Server {
             for (Integer oldFiles : oldClientsFiles) {
                 filesByID.get(oldFiles).clients.remove(client);
             }
-        }
-    }
-
-    private void loadState() {
-        Scanner in;
-        try {
-            in = new Scanner(stateFile);
-            while (in.hasNext()) {
-                FileEntry entry = new FileEntry();
-                entry.clients = new HashSet<>();
-                entry.id = in.nextInt();
-                entry.name = in.next();
-                entry.size = in.nextLong();
-
-                filesByID.put(entry.id, entry);
-            }
-            in.close();
-        } catch (FileNotFoundException ignored) {
         }
     }
 
