@@ -156,6 +156,8 @@ public class Server {
         short seedPort = dis.readShort();
         byte[] ip = socket.getInetAddress().getAddress();
 
+        System.err.println("Update: port-" + seedPort);
+
         ClientAddress newClient = new ClientAddress();
         newClient.setIp(ip);
         newClient.setPort(seedPort);

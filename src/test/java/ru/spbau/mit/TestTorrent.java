@@ -16,7 +16,7 @@ import static java.nio.file.Files.delete;
 import static junit.framework.Assert.assertEquals;
 
 public class TestTorrent {
-    private static final int SLEEP_TIME = 1000;
+    private static final int SLEEP_TIME = 5000;
 
     private Path tmpDir;
     private File file1;
@@ -150,6 +150,7 @@ public class TestTorrent {
         thread2.join();
 
         client1.stop();
+        thread1.join();
         server.stop();
     }
 

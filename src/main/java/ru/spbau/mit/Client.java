@@ -11,7 +11,7 @@ import java.util.*;
 
 public class Client {
     private static final int SLEEP_TIME_BETWEEN_DOWNLOADING_FILES = 100;
-    private static final int SLEEP_TIME_BETWEEN_RECONNECT_TO_SERVER = 100;
+    private static final int SLEEP_TIME_BETWEEN_RECONNECT_TO_SERVER = 1000;
 
     private static final int COUNT_OF_TRYING_CONNECT_TO_SERVER = 3;
 
@@ -223,8 +223,17 @@ public class Client {
 
         Collections.shuffle(clientsWithFile);
         for (ClientAddress currentClient : clientsWithFile) {
-            Socket socket = connect(InetAddress.getByAddress(currentClient.getIp()).getHostAddress(),
-                    currentClient.getPort());
+            if (currentClient.getPort() == serverSocket.getLocalPort()) {
+                continue;
+            }
+
+            Socket socket;
+            try {
+                socket = connect(InetAddress.getByAddress(currentClient.getIp()).getHostAddress(),
+                        currentClient.getPort());
+            } catch (ConnectException e) {
+                continue;
+            }
             DataInputStream dis = new DataInputStream(socket.getInputStream());
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
