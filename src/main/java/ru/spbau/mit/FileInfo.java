@@ -3,7 +3,7 @@ package ru.spbau.mit;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Scanner;
+import java.util.Objects;
 
 public class FileInfo implements Serializable {
     private static final int PART_SIZE = 2048;
@@ -49,20 +49,19 @@ public class FileInfo implements Serializable {
     }
 
     // DataInputStream
-    public static FileInfo fromStateFile(Scanner scan) throws FileNotFoundException {
+    public static FileInfo fromStateFile(DataInputStream dis) throws IOException {
         FileInfo fi = new FileInfo();
-        fi.id = scan.nextInt();
-        fi.size = scan.nextLong();
+        fi.id = dis.readInt();
+        fi.size = dis.readLong();
         if (fi.size < 0) {
             return fi;
         }
-        fi.name = scan.next();
-        String parts = scan.next();
+        fi.name = dis.readUTF();
 
         int cnt = getPartsCount(fi.size);
         fi.parts = new boolean[cnt];
         for (int i = 0; i < cnt; ++i) {
-            fi.parts[i] = (parts.charAt(i) == '1');
+            fi.parts[i] = (Objects.equals(dis.readUTF(), "1"));
         }
 
         return fi;
@@ -127,17 +126,14 @@ public class FileInfo implements Serializable {
     }
 
 
-    public void writeInfo(PrintWriter wr) {
-        wr.print(id);
-        wr.print(" ");
-        wr.print(size);
-        wr.print(" ");
-        wr.print(name);
-        wr.print(" ");
+    public void writeInfo(DataOutputStream dos) throws IOException {
+        dos.writeInt(id);
+        dos.writeLong(size);
+        dos.writeUTF(name);
+
         for (boolean part : parts) {
-            wr.print(part ? 1 : 0);
+            dos.writeUTF(part ? "1" : "0");
         }
-        wr.print("\n");
     }
 
     public long getSize() {

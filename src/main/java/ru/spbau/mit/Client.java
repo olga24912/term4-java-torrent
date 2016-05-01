@@ -14,7 +14,7 @@ public class Client {
 
     private static final int COUNT_OF_TRYING_CONNECT_TO_SERVER = 3;
 
-    private File stateFile;
+    private String stateFile;
     private ServerSocket serverSocket;
 
     private String downloadPath;
@@ -24,7 +24,7 @@ public class Client {
 
     public Client(String host, String pathInfo) throws IOException {
         this.trackerHost = host;
-        stateFile = new File(pathInfo);
+        stateFile = pathInfo;
         files = new HashMap<>();
 
         loadState();
@@ -37,19 +37,19 @@ public class Client {
         downloadPath += File.separator + Constants.NAME_DOWNLOAD_DIR;
     }
 
-    private void loadState() {
+    private void loadState() throws IOException {
         try {
-            Scanner in = new Scanner(stateFile);
-            int cnt = in.nextInt();
+            DataInputStream dis = new DataInputStream(new FileInputStream(stateFile));
+            int cnt = dis.readInt();
             for (int i = 0; i < cnt; ++i) {
-                FileInfo fi = FileInfo.fromStateFile(in);
+                FileInfo fi = FileInfo.fromStateFile(dis);
                 if (fi.getSize() < 0) {
                     files.put(fi.getId(), FileInfo.fromServerInfo(fi.getId(), "", -1));
                 } else {
                     files.put(fi.getId(), fi);
                 }
             }
-            in.close();
+            dis.close();
         } catch (FileNotFoundException ignored) {
         }
     }
@@ -317,19 +317,18 @@ public class Client {
 
     }
 
-    public void saveState() throws FileNotFoundException {
-        PrintWriter out = new PrintWriter(stateFile);
-        out.print(files.size());
-        out.print("\n");
+    public void saveState() throws IOException {
+        DataOutputStream dos = new DataOutputStream(new FileOutputStream(stateFile));
+        dos.writeInt(files.size());
         for (Map.Entry<Integer, FileInfo> entry : files.entrySet()) {
             if (entry.getValue() != null) {
-                entry.getValue().writeInfo(out);
+                entry.getValue().writeInfo(dos);
             } else {
-                out.print(entry.getKey());
-                out.print(" -1\n");
+                dos.writeInt(entry.getKey());
+                dos.writeLong(-1);
             }
         }
-        out.close();
+        dos.close();
     }
 
     private Socket connectToServer() throws IOException {
