@@ -86,8 +86,8 @@ public class Client {
         serverSocket = new ServerSocket(genPort());
         System.err.println("port: " + serverSocket.getLocalPort());
 
-        startSendUpdateQuery();
         startSeedingThread();
+        startSendUpdateQuery();
         ArrayList<FileInfo> fis = getListOfFileOnServer();
 
         for (FileInfo fi : fis) {
@@ -172,7 +172,7 @@ public class Client {
     }
 
     private void sendUpdateQuery() throws IOException, InterruptedException {
-        Socket socket = new Socket(trackerHost, Constants.SERVER_PORT);
+        Socket socket = connectToServer();
         DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
         dos.writeByte(Constants.UPDATE_QUERY);
@@ -199,12 +199,20 @@ public class Client {
 
     private void catchSocket() throws IOException {
         while (true) {
-            Socket socket = this.serverSocket.accept();
+            Socket socket = accept();
             if (socket != null) {
                 handleQuery(socket);
             } else {
                 return;
             }
+        }
+    }
+
+    private Socket accept() {
+        try {
+            return this.serverSocket.accept();
+        } catch (IOException e) {
+            return null;
         }
     }
 

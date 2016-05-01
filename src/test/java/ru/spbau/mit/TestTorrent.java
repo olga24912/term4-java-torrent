@@ -166,7 +166,8 @@ public class TestTorrent {
         ArrayList<FileInfo> res = client2.getListOfFileOnServer();
 
         assertEquals(res.size(), 1);
-        assertEquals(res.get(0).getName(), file1.getPath());
+        assertEquals(res.get(0).getName(), file1.getPath().substring(file1.getPath().lastIndexOf(File.separator) + 1,
+                file1.getPath().length()));
     }
 
     private void createClient1() throws IOException, InterruptedException {
