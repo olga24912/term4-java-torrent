@@ -164,7 +164,7 @@ public class TestTorrent {
         ArrayList<FileInfo> res = client2.getListOfFileOnServer();
         client2.addToDownloadFile(res.get(0).getId());
 
-        client2.run(port);
+        client2.run();
     }
 
     private void createClient2() throws IOException {
@@ -178,7 +178,7 @@ public class TestTorrent {
     private void createClient1(int port) throws IOException, InterruptedException {
         client1 = new Client("localhost", fileState.getAbsolutePath());
         client1.addNewFile(file1.getPath());
-        client1.run(port);
+        client1.run();
     }
 
     private void createServer() throws IOException {

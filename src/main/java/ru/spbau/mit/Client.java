@@ -5,6 +5,7 @@ import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -31,10 +32,15 @@ public class Client {
         createDownloadDir();
     }
 
-    private void createDownloadDir() {
+    private void createDownloadDir() throws IOException {
         downloadPath = Paths.get(".").toAbsolutePath().toString();
         downloadPath = downloadPath.substring(0, downloadPath.length() - 2);
         downloadPath += File.separator + Constants.NAME_DOWNLOAD_DIR;
+
+        File down = new File(downloadPath);
+        if (!down.exists() || !down.isDirectory()) {
+            Files.createDirectory(Paths.get(downloadPath));
+        }
     }
 
     private void loadState() throws IOException {
@@ -283,8 +289,8 @@ public class Client {
                     System.err.println("Wrong query " + String.format("%x", operation));
                 }
             }
-        } catch (IOException ignored) {
-            System.err.println("IOException in handle query");
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally {
             try {
                 socket.close();

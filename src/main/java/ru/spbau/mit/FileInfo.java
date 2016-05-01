@@ -48,7 +48,6 @@ public class FileInfo implements Serializable {
         return fileInfo;
     }
 
-    // DataInputStream
     public static FileInfo fromStateFile(DataInputStream dis) throws IOException {
         FileInfo fi = new FileInfo();
         fi.id = dis.readInt();
@@ -87,7 +86,7 @@ public class FileInfo implements Serializable {
     }
 
     public void savePart(byte[] partEntry, int partNum) throws IOException {
-        RandomAccessFile file = new RandomAccessFile(name, "w");
+        RandomAccessFile file = new RandomAccessFile(name, "rw");
         file.seek(getPosOfPart(partNum));
         file.write(partEntry);
         parts[partNum] = true;
