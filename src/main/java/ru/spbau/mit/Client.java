@@ -145,7 +145,7 @@ public class Client {
         Thread thread = new Thread(() -> {
             try {
                 try {
-                    sendUpdateQuery();
+                    sendUpdateQueries();
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -158,23 +158,33 @@ public class Client {
     }
 
     // use java.util.Timer
-    private void sendUpdateQuery() throws IOException, InterruptedException {
-        while (!shutdownFlag) {
-            Socket socket = new Socket(trackerHost, Constants.SERVER_PORT);
-            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-
-            dos.writeByte(Constants.UPDATE_QUERY);
-            dos.writeShort(serverSocket.getLocalPort());
-            dos.writeInt(files.size());
-
-            for (Integer id : files.keySet()) {
-                dos.writeInt(id);
+    private void sendUpdateQueries() throws IOException, InterruptedException {
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    sendUpdateQuery();
+                } catch (IOException | InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
+        }, 0, Constants.UPDATE_INTERVAL);
+    }
 
-            socket.close();
-            //
-            Thread.sleep(Constants.UPDATE_INTERVAL);
+    private void sendUpdateQuery() throws IOException, InterruptedException {
+        Socket socket = new Socket(trackerHost, Constants.SERVER_PORT);
+        DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+
+        dos.writeByte(Constants.UPDATE_QUERY);
+        dos.writeShort(serverSocket.getLocalPort());
+        dos.writeInt(files.size());
+
+        for (Integer id : files.keySet()) {
+            dos.writeInt(id);
         }
+
+        socket.close();
     }
 
     private void startSeedingThread() throws IOException {
@@ -199,7 +209,6 @@ public class Client {
         }
     }
 
-    // unused parameters
     private void download(int id) throws IOException {
         ArrayList<ClientAddress> clientsWithFile = sendSourcesQuery(id);
 
