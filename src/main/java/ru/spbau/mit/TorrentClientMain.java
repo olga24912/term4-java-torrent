@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 public final class TorrentClientMain {
-    // magic constant turn off
     private static final int QUERY_ARG = 0;
     private static final int SERVER_HOST_ARG = 1;
 

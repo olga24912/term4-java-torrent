@@ -10,18 +10,13 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Scanner;
 
 import static java.nio.file.Files.delete;
 import static junit.framework.Assert.assertEquals;
 
 public class TestTorrent {
-    private static final int CLIENT1_PORT = 8090;
-    private static final int CLIENT2_PORT = 8089;
-    private static final int CLIENT3_PORT = 8091;
-    private static final int CLIENT4_PORT = 8092;
-
     private static final int SLEEP_TIME = 1000;
-
 
     private Path tmpDir;
     private File file1;
@@ -31,11 +26,9 @@ public class TestTorrent {
     private File fileStateServer;
 
     private Path tmpDir2;
-    private File file2;
     private File fileState2;
 
     private Server server;
-    private Client client1;
     private Client client2;
     private String fileEntry = "test   @";
 
@@ -49,7 +42,6 @@ public class TestTorrent {
         fileStateServer = new File(tmpDir.toString() + File.separator + "stateServer");
 
         tmpDir2 = Files.createTempDirectory("torrent2");
-        file2 = new File(tmpDir.toString() + File.separator + "file");
         fileState2 = new File(tmpDir.toString() + File.separator + "stateClient2");
     }
 
@@ -75,7 +67,7 @@ public class TestTorrent {
 
         Thread thread1 = new Thread(() -> {
             try {
-                createClient1(CLIENT3_PORT);
+                createClient1();
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
@@ -86,7 +78,7 @@ public class TestTorrent {
 
         Thread thread2 = new Thread(() -> {
             try {
-                downloadClient2(CLIENT4_PORT);
+                downloadClient2();
             } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
@@ -99,14 +91,15 @@ public class TestTorrent {
         thread1.interrupt();
         thread2.interrupt();
         server.stop();
-        //File file = new File(tmpDir2.toString() + File.separator + "down");
 
-        //Scanner in = new Scanner(file);
-        //String resS = in.nextLine();
+        File file = new File("." + File.separator + "downloads" + File.separator + "0" + File.separator + "file1");
 
-        //System.err.println(resS);
+        Scanner in = new Scanner(file);
+        String resS = in.nextLine();
 
-        //assertEquals(fileEntry, resS);
+        System.err.println(resS);
+
+        assertEquals(fileEntry, resS);
     }
 
 
@@ -132,10 +125,8 @@ public class TestTorrent {
 
         Thread thread1 = new Thread(() -> {
             try {
-                createClient1(CLIENT1_PORT);
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
+                createClient1();
+            } catch (IOException | InterruptedException e) {
                 e.printStackTrace();
             }
         });
@@ -159,7 +150,7 @@ public class TestTorrent {
         server.stop();
     }
 
-    private void downloadClient2(int port) throws IOException, InterruptedException {
+    private void downloadClient2() throws IOException, InterruptedException {
         client2 = new Client("localhost", fileState2.getAbsolutePath());
         ArrayList<FileInfo> res = client2.getListOfFileOnServer();
         client2.addToDownloadFile(res.get(0).getId());
@@ -175,8 +166,8 @@ public class TestTorrent {
         assertEquals(res.get(0).getName(), file1.getPath());
     }
 
-    private void createClient1(int port) throws IOException, InterruptedException {
-        client1 = new Client("localhost", fileState.getAbsolutePath());
+    private void createClient1() throws IOException, InterruptedException {
+        Client client1 = new Client("localhost", fileState.getAbsolutePath());
         client1.addNewFile(file1.getPath());
         client1.run();
     }
@@ -194,7 +185,12 @@ public class TestTorrent {
     }
 
     private void deleteDir(Path dir) throws IOException {
-        for (File c : (new File(dir.toString())).listFiles()) {
+        File[] files = new File(dir.toString()).listFiles();
+        if (files == null) {
+            return;
+        }
+
+        for (File c : files) {
             delete(c.toPath());
         }
 

@@ -157,7 +157,6 @@ public class Client {
         return thread;
     }
 
-    // use java.util.Timer
     private void sendUpdateQueries() throws IOException, InterruptedException {
         Timer timer = new Timer();
         timer.schedule(new TimerTask() {
