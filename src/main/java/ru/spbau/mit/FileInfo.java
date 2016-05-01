@@ -18,7 +18,8 @@ public class FileInfo implements Serializable {
         RandomAccessFile file = new RandomAccessFile(name, "r");
 
         dos.writeByte(Constants.UPLOAD_QUERY);
-        dos.writeUTF(name);
+        String fileName = name.substring(name.lastIndexOf('/') + 1, name.length());
+        dos.writeUTF(fileName);
         dos.writeLong(file.length());
 
         FileInfo fileInfo = new FileInfo();
