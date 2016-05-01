@@ -23,6 +23,8 @@ public class Client {
     private Map<Integer, FileInfo> files;
     private String trackerHost;
 
+    private Boolean shutdownFlag = false;
+
     public Client(String host, String pathInfo) throws IOException {
         this.trackerHost = host;
         stateFile = pathInfo;
@@ -72,7 +74,6 @@ public class Client {
         files.put(fileInfo.getId(), fileInfo);
 
         socket.close();
-        System.err.println("add new file");
         return fileInfo.getId();
     }
 
@@ -93,14 +94,12 @@ public class Client {
             if (files.containsKey(fi.getId()) && files.get(fi.getId()).getSize() == -1) {
                 String newName = downloadPath + File.separator + fi.getId() + File.separator + fi.getName();
                 createDir(downloadPath + File.separator + fi.getId());
-                System.err.println("new name: " + newName);
                 files.put(fi.getId(),
                         FileInfo.fromServerInfo(fi.getId(), newName, fi.getSize()));
             }
         }
-        while (true) {
+        while (!shutdownFlag) {
             for (Map.Entry<Integer, FileInfo> entry : files.entrySet()) {
-                System.err.println("entry key: " + entry.getKey());
                 if (entry.getValue().getSize() != -1) {
                     download(entry.getValue().getId());
                 }
@@ -160,8 +159,7 @@ public class Client {
 
     // use java.util.Timer
     private void sendUpdateQuery() throws IOException, InterruptedException {
-        // add shutdown flag
-        while (true) {
+        while (!shutdownFlag) {
             Socket socket = new Socket(trackerHost, Constants.SERVER_PORT);
             DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
 
@@ -299,8 +297,8 @@ public class Client {
         } finally {
             try {
                 socket.close();
-            } catch (IOException ignored) {
-                //throw new IllegalStateException(ignored);
+            } catch (IOException e1) {
+                e1.printStackTrace();
             }
         }
     }
@@ -355,5 +353,11 @@ public class Client {
             }
         }
         return new Socket(trackerHost, Constants.SERVER_PORT);
+    }
+
+    private void stop() throws IOException {
+        shutdownFlag = true;
+        saveState();
+        serverSocket.close();
     }
 }
