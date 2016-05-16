@@ -14,6 +14,7 @@ import java.util.ArrayList;
 
 public class ServerFilesPane extends JPanel implements ListSelectionListener, ActionListener {
     private static final Logger LOG = Logger.getLogger(ServerFilesPane.class);
+    private static final String DOWNLOAD_FILES_STRING = "OK";
 
     private Client client;
     private JFrame frame;
@@ -21,7 +22,6 @@ public class ServerFilesPane extends JPanel implements ListSelectionListener, Ac
     private JList<String> list;
     private DefaultListModel<String> listModel;
 
-    private static final String downloadFilesString = "OK";
     private JButton okButton;
 
     private ArrayList<FileInfo> files = new ArrayList<>();
@@ -39,10 +39,9 @@ public class ServerFilesPane extends JPanel implements ListSelectionListener, Ac
         list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         list.setSelectedIndex(0);
         list.addListSelectionListener(this);
-        list.setVisibleRowCount(5);
 
-        okButton = new JButton(downloadFilesString);
-        okButton.setActionCommand(downloadFilesString);
+        okButton = new JButton(DOWNLOAD_FILES_STRING);
+        okButton.setActionCommand(DOWNLOAD_FILES_STRING);
         okButton.addActionListener(this);
 
         update();
@@ -70,10 +69,8 @@ public class ServerFilesPane extends JPanel implements ListSelectionListener, Ac
 
     @Override
     public void valueChanged(ListSelectionEvent e) {
-        int firstIndex = e.getFirstIndex(), lastIndex = e.getLastIndex();
-
         chosenFiles.clear();
-        for (int i = firstIndex; i <= lastIndex; ++i) {
+        for (int i = e.getFirstIndex(); i <= e.getLastIndex(); ++i) {
             chosenFiles.add(files.get(i));
         }
     }

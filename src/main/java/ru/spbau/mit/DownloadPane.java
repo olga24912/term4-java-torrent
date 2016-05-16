@@ -11,8 +11,8 @@ import java.util.ArrayList;
 
 public class DownloadPane extends JPanel {
     private static final Logger LOG = Logger.getLogger(DownloadPane.class);
-
     private static final int TIME_BETWEEN_UPDATE = 1000;
+    private static final int PROGRESS_BAR_SIZE = 100;
 
     private Client client;
 
@@ -27,7 +27,7 @@ public class DownloadPane extends JPanel {
         super(new GridLayout(1, 0));
 
         model = new DefaultTableModel() {
-            String[] header = {"file name", "progress"};
+            private String[] header = {"file name", "progress"};
 
             @Override
             public int getColumnCount() {
@@ -42,12 +42,10 @@ public class DownloadPane extends JPanel {
 
         this.client = client;
         table = new JTable(model);
-        table.setPreferredScrollableViewportSize(new Dimension(500, 70));
-        table.setFillsViewportHeight(true);
 
         table.getColumn("progress").setCellRenderer((table1, value, isSelected, hasFocus, row, column) -> {
             if (progressBars.size() <= row) {
-                progressBars.add(new JProgressBar(0, 100));
+                progressBars.add(new JProgressBar(0, PROGRESS_BAR_SIZE));
             }
             progressBars.get(row).setStringPainted(true);
             return progressBars.get(row);
@@ -98,9 +96,11 @@ public class DownloadPane extends JPanel {
         for (FileInfo file : files) {
             String fileName = file.getName();
             model.addRow(new Object[]{fileName});
-            int cntPartHave = file.getExistingPartsCount(), allPart = file.getPartsCount();
+            int cntPartHave = file.getExistingPartsCount();
+            int allPart = file.getPartsCount();
 
-            int row = model.getRowCount() - 1, column = 1;
+            int row = model.getRowCount() - 1;
+            int column = 1;
             TableCellRenderer renderer = table.getCellRenderer(row, column);
             JProgressBar progressBar = (JProgressBar) table.prepareRenderer(renderer, row, column);
 
@@ -108,7 +108,7 @@ public class DownloadPane extends JPanel {
                 allPart = 1;
             }
 
-            progressBar.setValue(cntPartHave * 100/allPart);
+            progressBar.setValue(cntPartHave * PROGRESS_BAR_SIZE / allPart);
         }
     }
 }
