@@ -136,6 +136,20 @@ public class FileInfo implements Serializable {
         }
     }
 
+    public int getExistingPartsCount() {
+        int res = 0;
+        for (boolean part : parts) {
+            if (part) {
+                ++res;
+            }
+        }
+        return res;
+    }
+
+    public  int getPartsCount() {
+        return getPartsCount(size);
+    }
+
     public long getSize() {
         return size;
     }

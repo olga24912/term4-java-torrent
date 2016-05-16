@@ -10,6 +10,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Client {
     private static final Logger LOG = Logger.getLogger(Client.class);
@@ -92,17 +93,18 @@ public class Client {
 
         startSeedingThread();
         startSendUpdateQuery();
-        ArrayList<FileInfo> fis = getListOfFileOnServer();
-
-        for (FileInfo fi : fis) {
-            if (files.containsKey(fi.getId()) && files.get(fi.getId()).getSize() == -1) {
-                String newName = downloadPath + File.separator + fi.getId() + File.separator + fi.getName();
-                createDir(downloadPath + File.separator + fi.getId());
-                files.put(fi.getId(),
-                        FileInfo.fromServerInfo(fi.getId(), newName, fi.getSize()));
-            }
-        }
         while (!shutdownFlag) {
+            ArrayList<FileInfo> fis = getListOfFileOnServer();
+
+            for (FileInfo fi : fis) {
+                if (files.containsKey(fi.getId()) && files.get(fi.getId()).getSize() == -1) {
+                    String newName = downloadPath + File.separator + fi.getId() + File.separator + fi.getName();
+                    createDir(downloadPath + File.separator + fi.getId());
+                    files.put(fi.getId(),
+                            FileInfo.fromServerInfo(fi.getId(), newName, fi.getSize()));
+                }
+            }
+
             for (Map.Entry<Integer, FileInfo> entry : files.entrySet()) {
                 if (entry.getValue().getSize() != -1) {
                     download(entry.getValue().getId());
@@ -396,5 +398,9 @@ public class Client {
         shutdownFlag = true;
         saveState();
         serverSocket.close();
+    }
+
+    public ArrayList<FileInfo> getListOfFile() {
+        return files.entrySet().stream().map(Map.Entry::getValue).collect(Collectors.toCollection(ArrayList::new));
     }
 }
