@@ -1,5 +1,7 @@
 package ru.spbau.mit;
 
+import org.apache.log4j.Logger;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
@@ -8,6 +10,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class DownloadPane extends JPanel {
+    private static final Logger LOG = Logger.getLogger(DownloadPane.class);
+
     private static final int TIME_BETWEEN_UPDATE = 1000;
 
     private Client client;
@@ -16,6 +20,8 @@ public class DownloadPane extends JPanel {
     private DefaultTableModel model;
 
     private Thread updateThread;
+
+    private ArrayList<JProgressBar> progressBars = new ArrayList<>();
 
     public DownloadPane(Client client) throws IOException {
         super(new GridLayout(1, 0));
@@ -39,14 +45,12 @@ public class DownloadPane extends JPanel {
         table.setPreferredScrollableViewportSize(new Dimension(500, 70));
         table.setFillsViewportHeight(true);
 
-        table.getColumn("progress").setCellRenderer(new TableCellRenderer() {
-            JProgressBar progressBar = new JProgressBar(0, 100);
-
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                progressBar.setStringPainted(true);
-                return progressBar;
+        table.getColumn("progress").setCellRenderer((table1, value, isSelected, hasFocus, row, column) -> {
+            if (progressBars.size() <= row) {
+                progressBars.add(new JProgressBar(0, 100));
             }
+            progressBars.get(row).setStringPainted(true);
+            return progressBars.get(row);
         });
 
         JScrollPane scrollPane = new JScrollPane(table);
@@ -75,13 +79,9 @@ public class DownloadPane extends JPanel {
 
         new Thread(() -> {
             try {
-                try {
-                    client.run();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                client.run();
+            } catch (IOException | InterruptedException e) {
+                LOG.trace(e.getMessage());
             }
         }).start();
     }

@@ -1,5 +1,7 @@
 package ru.spbau.mit;
 
+import org.apache.log4j.Logger;
+
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -11,6 +13,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class ServerFilesPane extends JPanel implements ListSelectionListener, ActionListener {
+    private static final Logger LOG = Logger.getLogger(ServerFilesPane.class);
+
     private Client client;
     private JFrame frame;
 
@@ -29,17 +33,15 @@ public class ServerFilesPane extends JPanel implements ListSelectionListener, Ac
         this.client = client;
         this.frame = frame;
 
-        listModel = new DefaultListModel<String>();
+        listModel = new DefaultListModel<>();
 
-        list = new JList<String>(listModel);
+        list = new JList<>(listModel);
         list.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         list.setSelectedIndex(0);
         list.addListSelectionListener(this);
         list.setVisibleRowCount(5);
 
-        JScrollPane listScrollPane = new JScrollPane(list);
-
-        JButton okButton = new JButton(downloadFilesString);
+        okButton = new JButton(downloadFilesString);
         okButton.setActionCommand(downloadFilesString);
         okButton.addActionListener(this);
 
@@ -82,7 +84,7 @@ public class ServerFilesPane extends JPanel implements ListSelectionListener, Ac
             try {
                 client.addToDownloadFile(chosenFile.getId());
             } catch (FileNotFoundException e1) {
-                e1.printStackTrace();
+                LOG.trace(e1.getMessage());
             }
         }
 

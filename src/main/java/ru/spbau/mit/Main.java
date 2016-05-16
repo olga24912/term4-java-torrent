@@ -3,8 +3,6 @@ package ru.spbau.mit;
 import org.apache.log4j.Logger;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -33,6 +31,18 @@ public final class Main {
 
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 
+        frame.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent windowEvent) {
+                try {
+                    client.saveState();
+                } catch (IOException e) {
+                    LOG.trace(e.getMessage());
+                }
+
+                System.exit(0);
+            }
+        });
         frame.setJMenuBar(menubar);
         frame.add(downloadPane);
 
@@ -44,39 +54,33 @@ public final class Main {
         JMenuItem itemDownload = new JMenuItem("Available for download");
         JMenuItem itemUpload = new JMenuItem("Upload new file");
 
-        itemUpload.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int returnVal = chooserUploadFile.showOpenDialog(new JPanel());
+        itemUpload.addActionListener(e -> {
+            int returnVal = chooserUploadFile.showOpenDialog(new JPanel());
 
-                if (returnVal == JFileChooser.APPROVE_OPTION) {
-                    File file = chooserUploadFile.getSelectedFile();
-                    try {
-                        client.addNewFile(file.getPath());
-                    } catch (IOException e1) {
-                        LOG.trace(e1.getMessage());
-                    }
-                    downloadPane.update();
+            if (returnVal == JFileChooser.APPROVE_OPTION) {
+                File file = chooserUploadFile.getSelectedFile();
+                try {
+                    client.addNewFile(file.getPath());
+                } catch (IOException e1) {
+                    LOG.trace(e1.getMessage());
                 }
+                downloadPane.update();
             }
         });
 
-        itemDownload.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                final JFrame frame = new JFrame("Choose files");
+        itemDownload.addActionListener(e -> {
+            final JFrame frame = new JFrame("Choose files");
 
-                frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+            frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 
-                try {
-                    frame.add(new ServerFilesPane(client, frame));
-                } catch (IOException e1) {
-                    e1.printStackTrace();
-                }
-
-                frame.pack();
-                frame.setVisible(true);
+            try {
+                frame.add(new ServerFilesPane(client, frame));
+            } catch (IOException e1) {
+                LOG.trace(e1.getMessage());
             }
+
+            frame.pack();
+            frame.setVisible(true);
         });
 
         JMenu menu = new JMenu("Menu");
