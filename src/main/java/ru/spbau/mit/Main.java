@@ -10,20 +10,25 @@ import java.nio.file.Paths;
 public final class Main {
     private static final Logger LOG = Logger.getLogger(Main.class);
 
+    private static JFrame frame;
+
     private static Client client;
     private static JFileChooser chooserUploadFile;
     private static DownloadPane downloadPane;
+
+    private static String pathInfo;
+    private static String serverHost = "localhost";
 
     private Main() {
     }
 
     public static void main(String[] args) throws IOException {
-        String pathInfo = Paths.get(".").toAbsolutePath().toString();
+        pathInfo = Paths.get(".").toAbsolutePath().toString();
         pathInfo += File.separator + Constants.NAME_OF_CLIENT_STATE_FILE;
 
-        client = new Client("localhost", pathInfo);
+        client = new Client(serverHost, pathInfo);
 
-        final JFrame frame = new JFrame("Torrent");
+        frame = new JFrame("Torrent");
         final JMenuBar menubar = buildMenuBar();
 
         chooserUploadFile = new JFileChooser();
@@ -53,6 +58,7 @@ public final class Main {
     private static JMenuBar buildMenuBar() {
         JMenuItem itemDownload = new JMenuItem("Available for download");
         JMenuItem itemUpload = new JMenuItem("Upload new file");
+        JMenuItem itemServerHost = new JMenuItem("Choose server host");
 
         itemUpload.addActionListener(e -> {
             int returnVal = chooserUploadFile.showOpenDialog(new JPanel());
@@ -83,9 +89,29 @@ public final class Main {
             frame.setVisible(true);
         });
 
+        itemServerHost.addActionListener(e -> {
+            serverHost = JOptionPane.showInputDialog(frame, "Write server host");
+            try {
+                client.stop();
+            } catch (IOException e1) {
+                LOG.trace(e1.getMessage());
+            }
+
+            client.clearState();
+
+            try {
+                client = new Client(serverHost, pathInfo);
+            } catch (IOException e1) {
+                LOG.trace(e1.getMessage());
+            }
+
+            downloadPane.changeClient(client);
+        });
+
         JMenu menu = new JMenu("Menu");
         menu.add(itemDownload);
         menu.add(itemUpload);
+        menu.add(itemServerHost);
 
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(menu);

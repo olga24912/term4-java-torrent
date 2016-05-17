@@ -374,6 +374,14 @@ public class Client {
         dos.close();
     }
 
+    public void clearState() {
+        try {
+            Files.delete(Paths.get(stateFile));
+        } catch (IOException e) {
+            LOG.trace(e.getMessage());
+        }
+    }
+
     private Socket connectToServer() throws IOException {
         return connect(trackerHost, Constants.SERVER_PORT);
     }

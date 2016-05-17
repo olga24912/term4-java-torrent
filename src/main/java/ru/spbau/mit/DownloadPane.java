@@ -111,4 +111,9 @@ public class DownloadPane extends JPanel {
             progressBar.setValue(cntPartHave * PROGRESS_BAR_SIZE / allPart);
         }
     }
+
+    public void changeClient(Client client) {
+        this.client = client;
+        update();
+    }
 }
